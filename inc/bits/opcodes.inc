@@ -1,0 +1,34 @@
+/*  This file is part of Axolotl.
+ *
+ * Axolotl is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Axolotl is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+OPCODE(INVALID,       0)
+OPCODE(LOAD_CONST,    1) //! if _1 < 0, argument, otherwise from const table
+OPCODE(LOAD_LOCAL,    1) //! index _1
+OPCODE(STOR_LOCAL,    1) //! _1 = pop()
+OPCODE(LOAD_MEMBER,   1) //! push(pop()[_1])
+OPCODE(STOR_MEMBER,   1) //! pop()[_1] = pop()
+OPCODE(LOAD_GLOBAL,   1) //! push(globals(_1))
+OPCODE(STOR_GLOBAL,   1) //! globals(_1) = pop()
+OPCODE(INVOKE,        1) //! pop().invoke(_1 arguments)
+OPCODE(METHOD,        2) //! self = pop(); self.invoke(self, _1 arguments)
+OPCODE(LEAVE,         0)
+OPCODE(RETURN,        0) //! returns pop()
+OPCODE(JMP,           1) //! pc = _1
+OPCODE(JMPR,          1) //! pc += _1
+OPCODE(JMP_IF_FALSE,  1) //! if !pop() pc = _1
+OPCODE(JMPR_IF_FALSE, 1) //! if !pop() pc += _1
+OPCODE(JMP_IF_TRUE,   1) //! if pop() pc = _1
+OPCODE(JMPR_IF_TRUE,  1) //! if pop() pc += _1

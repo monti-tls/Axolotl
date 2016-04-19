@@ -1,0 +1,6 @@
+*.sublime-*
+*.old*
+bin
+obj
+bin/*
+obj/*

@@ -1,0 +1,79 @@
+LPAREN      = \(
+RPAREN      = \)
+LBRACE      = {
+RBRACE      = }
+STAR        = \*
+COLON       = :
+COMMA       = ,
+KW_FUN      = fun
+KW_IMPORT   = import
+KW_IF       = if
+KW_ELIF     = elif
+KW_ELSE     = else
+KW_WHILE    = while
+KW_DO       = do
+KW_BREAK    = break
+KW_CONTINUE = continue
+KW_RETURN   = return
+IDENTIFIER  = [a-zA-Z_] [a-zA-Z0-9_]*
+
+typename:
+      STAR
+    | IDENTIFIER
+
+fun_arg_typespec:
+    COLON typename
+
+fun_arg_list:
+    LPAREN
+    [
+        IDENTIFIER [fun_arg_typespec]
+        (
+            COMMA IDENTIFIER [fun_arg_typespec]
+        )*
+    ]
+    RPAREN
+
+fun_decl:
+    KW_FUN IDENTIFIER fun_arg_list
+    stmt_block
+
+stmt:
+      stmt_block
+    | expression SEMICOLON
+    | import_stmt
+    | if_stmt
+    | while_stmt
+    | do_while_stmt
+    | break_stmt
+    | continue_stmt
+    | return_stmt
+
+stmt_block:
+    LBRACE stmt* RBRACE
+
+import_list:
+    IDENTIFIER (DOT (IDENTIFIER | STAR))?
+
+import_stmt:
+    KW_IMPORT import_list SEMICOLON
+
+if_stmt:
+    KW_IF LPAREN expression RPAREN stmt_block
+    (KW_ELIF LPAREN expression RPAREN stmt_block)*
+    [KW_ELSE stmt_block]
+
+while_stmt:
+    KW_WHILE LPAREN expression RPAREN stmt_block
+
+do_while_stmt:
+    KW_DO stmt_block LPAREN expression RPAREN SEMICOLON
+
+break_stmt:
+    KW_BREAK SEMICOLON
+
+continue_stmt:
+    KW_CONTINUE SEMICOLON
+
+return_stmt:
+    KW_RETURN [expression] SEMICOLON
