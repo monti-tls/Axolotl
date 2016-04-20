@@ -18,7 +18,7 @@
 #define __AXOLOTL_CORE_OBJECT_IMPL_H__
 
 #include "core/object.hpp"
-#include "core/objectfactory.hpp"
+#include "core/object_factory.hpp"
 #include "core/ppack.hpp"
 
 namespace core

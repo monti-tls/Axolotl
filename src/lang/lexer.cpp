@@ -130,115 +130,121 @@ Token Lexer::M_getToken()
         int priority;
     };
 
-    // We will put eventual matches here
-    std::vector<Match> match_list;
-    // And here are our state lists
-    std::vector<State*> state_list, next_state_list;
-
-    // Enter into the initial state
-    M_addStateInList(m_nfa_start, state_list);
-
-    // Simulate our NFA
-    for (std::size_t size = 0; ; ++size)
+    for (;;)
     {
-        // Get the next character to examine
-        char c = M_advanceForward();
+        // We will put eventual matches here
+        std::vector<Match> match_list;
+        // And here are our state lists
+        std::vector<State*> state_list, next_state_list;
 
-        for (auto state : state_list)
+        // Enter into the initial state
+        M_addStateInList(m_nfa_start, state_list);
+
+        // Simulate our NFA
+        for (std::size_t size = 0; ; ++size)
         {
-            // If we encounter a match state, put it into our list
-            //   and save information about where it happenned, when and
-            //   to which definition it is related
-            if (state->what == State::Match)
-            {
-                Match match;
-                match.state = (MatchState*) state;
-                match.forward = m_forward;
-                match.size = size;
-                match.priority = m_defs[match.state->defname].priority;
+            // Get the next character to examine
+            char c = M_advanceForward();
 
-                match_list.push_back(match);
-            }
-            else if (state->what == State::Wildcard)
+            for (auto state : state_list)
             {
-                M_addStateInList(state->out[0], next_state_list);
-            }
-            else if (state->what == State::Range)
-            {
-                bool in_class = false;
-                for (CharClass* cls = state->char_class; cls; cls = cls->next)
+                // If we encounter a match state, put it into our list
+                //   and save information about where it happenned, when and
+                //   to which definition it is related
+                if (state->what == State::Match)
                 {
-                    in_class = in_class || (c >= cls->low && c <= cls->high);
-                    if (in_class)
-                        break;
+                    Match match;
+                    match.state = (MatchState*) state;
+                    match.forward = m_forward;
+                    match.size = size;
+                    match.priority = m_defs[match.state->defname].priority;
+
+                    match_list.push_back(match);
                 }
-
-                if (state->invert)
-                    in_class = !in_class;
-
-                if (in_class)
+                else if (state->what == State::Wildcard)
+                {
                     M_addStateInList(state->out[0], next_state_list);
+                }
+                else if (state->what == State::Range)
+                {
+                    bool in_class = false;
+                    for (CharClass* cls = state->char_class; cls; cls = cls->next)
+                    {
+                        in_class = in_class || (c >= cls->low && c <= cls->high);
+                        if (in_class)
+                            break;
+                    }
+
+                    if (state->invert)
+                        in_class = !in_class;
+
+                    if (in_class)
+                        M_addStateInList(state->out[0], next_state_list);
+                }
             }
+
+            // Exit if we reached EOF or if we don't have
+            //   no more states in our list
+            if (!next_state_list.size() || m_eof)
+                break;
+
+            // Otherwise, swap and clear
+            state_list = next_state_list;
+            next_state_list.clear();
         }
 
-        // Exit if we reached EOF or if we don't have
-        //   no more states in our list
-        if (!next_state_list.size() || m_eof)
-            break;
-
-        // Otherwise, swap and clear
-        state_list = next_state_list;
-        next_state_list.clear();
-    }
-
-    if (!match_list.size())
-    {
-        M_resetBegin();
-        return Token(Token::Invalid);
-    }
-
-    // Search for the deepest match
-    std::size_t max_size = 0;
-    for (auto m : match_list)
-    {
-        if (m.size > max_size)
-            max_size = m.size;
-    }
-
-    // Search for the highest priority (lowest number)
-    //   between the deppest matches
-    int max_priority = -1;
-    for (auto m : match_list)
-    {
-        if (m.size < max_size)
-            continue;
-
-        if (max_priority < 0 || m.priority < max_priority)
-            max_priority = m.priority;
-    }
-
-    // Choose the final match based on a longest prefix, highest priority criteria
-    for (auto m : match_list)
-    {
-        if (m.size == max_size &&
-            m.priority == max_priority)
+        if (!match_list.size())
         {
-            // Reset our forward pointer so we can process further tokens
-            m_forward = m.forward;
-            if (*m_forward)
+            M_resetBegin();
+            return Token(Token::Invalid);
+        }
+
+        // Search for the deepest match
+        std::size_t max_size = 0;
+        for (auto m : match_list)
+        {
+            if (m.size > max_size)
+                max_size = m.size;
+        }
+
+        // Search for the highest priority (lowest number)
+        //   between the deppest matches
+        int max_priority = -1;
+        for (auto m : match_list)
+        {
+            if (m.size < max_size)
+                continue;
+
+            if (max_priority < 0 || m.priority < max_priority)
+                max_priority = m.priority;
+        }
+
+        // Choose the final match based on a longest prefix, highest priority criteria
+        for (auto m : match_list)
+        {
+            if (m.size == max_size &&
+                m.priority == max_priority)
+            {
+                // Reset our forward pointer so we can process further tokens
+                m_forward = m.forward;
                 M_retractForward();
 
-            // Setup the token we return
-            Object obj = m_defs[m.state->defname].build_token(M_getLexeme());
-            if (!obj.meta().is<Token>())
-                throw std::runtime_error("lang::Lexer::M_getToken: invalid token object");
-            Token tok = obj.unwrap<Token>();
+                // Setup the token we return
+                Object obj = m_defs[m.state->defname].build_token;
+                if (obj.isInvokable())
+                    obj = obj(M_getLexeme());
+                
+                if (!obj.meta().is<Token>())
+                    throw std::runtime_error("lang::Lexer::M_getToken: invalid token object");
+                Token tok = obj.unwrap<Token>();
 
-            // Reset our begin pointer so that it points
-            //   to the beginning of the next lexeme
-            M_resetBegin();
+                // Reset our begin pointer so that it points
+                //   to the beginning of the next lexeme
+                M_resetBegin();
 
-            return tok;
+                if (tok.which() != Token::Skip)
+                    return tok;
+            }
         }
     }
 
@@ -286,12 +292,27 @@ void Lexer::M_resetBegin()
     
     if (!*m_begin)
     {
+        // If we reach the (L) limit, just skip the end
+        //   and go to the beginning of (R)
         if (m_begin == m_buffers[m_left] + m_buffer_size)
+        {
             m_begin = m_buffers[m_right];
+        }
+        // If we reach the (R) limit, we must load
+        //   a new buffer ourselves to setup F as (R)-1
+        //   and B at (R)
         else if (m_begin == m_buffers[m_right] + m_buffer_size)
-            throw std::runtime_error("lang::Lexer::M_resetBegin: internal error");
+        {
+            M_loadBuffer(m_left);
+            std::swap(m_left, m_right);
+
+            m_begin = m_buffers[m_right];
+            m_forward = m_buffers[m_right] - 1;
+        }
         else
+        {
             m_eof = true;
+        }
     }
 }
 

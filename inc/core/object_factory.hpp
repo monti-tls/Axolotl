@@ -25,6 +25,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <list>
 #include <functional>
 #include <type_traits>
 #include <algorithm>
@@ -46,36 +47,57 @@ namespace core
     class ObjectFactory
     {
     private:
-        typedef std::function<Object(Some const&)> Iface;
-
-        struct MemberList
+        typedef std::function<Object(Some const&)> Interface;
+        typedef std::list<Object> ObjectList;
+        typedef std::pair<std::string, Object> NamedObject;
+        typedef std::list<NamedObject> NamedObjectList;
+        
+        struct ConstructorListBuilder
         {
             template <typename T>
-            MemberList& operator()(std::string const& name, T value)
+            ConstructorListBuilder& operator()(T value)
             {
-                as_vector.push_back(std::pair<std::string, Object>(name, value));
+                list.push_back(value);
                 return *this;
             }
 
-            std::vector<std::pair<std::string, Object>> as_vector;
+            ObjectList list;
+        };
+
+        struct MethodListBuilder
+        {
+            template <typename T>
+            MethodListBuilder& operator()(std::string const& name, T value)
+            {
+                named_list.push_back(NamedObject(name, value));
+                return *this;
+            }
+
+            NamedObjectList named_list;
         };
 
     public:
-        static MemberList memberList()
-        { return MemberList(); }
+        static ConstructorListBuilder constructorList()
+        { return ConstructorListBuilder(); }
+
+        static MethodListBuilder methodList()
+        { return MethodListBuilder(); }
 
         template <typename T>
-        static void registerType(std::string const& name, MemberList const& members)
+        static void registerType(std::string const& name,
+                                 ConstructorListBuilder const& constructors,
+                                 MethodListBuilder const& methods)
         {
             std::size_t type = typeId<T>();
             m_names[type] = name;
-            m_members[type] = members.as_vector;
-            m_ifaces[type] = [=](Some const& value) -> Object
+            m_constructors[type] = constructors.list;
+            m_methods[type] = methods.named_list;
+            m_interfaces[type] = [=](Some const& value) -> Object
             {
                 Object object(Object::Kind::Scalar, value, name);
                 Object::setupBuiltinMembers(object);
-                for (auto member : members.as_vector)
-                    object.newPolymorphic(member.first) = member.second;
+                for (auto method : methods.named_list)
+                    object.newPolymorphic(method.first) = method.second;
                 return object;
             };
         }
@@ -85,7 +107,7 @@ namespace core
         {
             std::size_t type = typeId<T>();
             m_names[type] = name;
-            m_ifaces[type] = [=](Some const& value) -> Object { return iface(const_cast<T&>(value.as<unqualified<T>>())); };
+            m_interfaces[type] = [=](Some const& value) -> Object { return iface(const_cast<T&>(value.as<unqualified<T>>())); };
         }
 
         template <typename T>
@@ -98,30 +120,37 @@ namespace core
             return it->second;
         }
 
-        static Object const& typeMember(std::string const& classname, std::string const& name)
+        static std::size_t typeIdFromName(std::string const& classname)
         {
-            // Get typeId
             auto it = std::find_if(m_names.begin(), m_names.end(),
                 [=](std::pair<std::size_t, std::string> const& item) { return item.second == classname; });
             if (it == m_names.end())
-                throw std::runtime_error("core::ObjectFactory::typeMember: type '" + classname + "' does not exists");
-            std::size_t typeId = it->first;
+                throw std::runtime_error("core::ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
+            return it->first;
+        }
 
-            // Get member list
-            std::vector<std::pair<std::string, Object>> const& members = m_members[typeId];
+        static ObjectList const& typeConstructors(std::string const& classname)
+        { return m_constructors[typeIdFromName(classname)]; }
 
-            // Check if member exists and if its not polymorphic
-            auto mpred = [=](std::pair<std::string, Object> const& item) { return item.first == name; };
-            std::size_t count = std::count_if(members.begin(), members.end(), mpred);
+        static Object const& typeMethod(std::string const& classname, std::string const& name)
+        {
+            // Get typeId
+            std::size_t typeId = typeIdFromName(classname);
+
+            // Get method list
+            NamedObjectList const& methods = m_methods[typeId];
+
+            // Check if method exists and if its not polymorphic
+            auto mpred = [=](NamedObject const& item) { return item.first == name; };
+            std::size_t count = std::count_if(methods.begin(), methods.end(), mpred);
 
             if (!count)
-                throw std::runtime_error("core::ObjectFactory::typeMember: member '" + name + "' in class '" + classname + "' does not exists");
+                throw std::runtime_error("core::ObjectFactory::typeMethod: method '" + name + "' in class '" + classname + "' does not exists");
             else if (count > 1)
-                throw std::runtime_error("core::ObjectFactory::typeMember: member '" + name + "' in class '" + classname + "' is polymorphic");
+                throw std::runtime_error("core::ObjectFactory::typeMethod: method '" + name + "' in class '" + classname + "' is polymorphic");
 
-            // Fetch the member
-            auto mit = std::find_if(members.begin(), members.end(), mpred);
-            return mit->second;
+            // Fetch the method (this is guaranteed to success because of the checks above)
+            return std::find_if(methods.begin(), methods.end(), mpred)->second;
         }
 
         static Object build(Object const& cpy)
@@ -131,8 +160,8 @@ namespace core
         template <typename T>
         static Object build(T value, typename std::enable_if<not is_callable<T>::value>::type* dummy = nullptr)
         {
-            std::map<std::size_t, Iface>::iterator it = m_ifaces.find(typeId<T>());
-            if (it == m_ifaces.end())
+            std::map<std::size_t, Interface>::iterator it = m_interfaces.find(typeId<T>());
+            if (it == m_interfaces.end())
                 throw std::runtime_error("core::ObjectFactory::build: object type is not registered");
 
             return it->second(Some(value));
@@ -154,9 +183,10 @@ namespace core
         { return Object(Object::Kind::Callable, Callable(fun), lang::std_callable_classname); }
 
     private:
-        static std::map<std::size_t, Iface> m_ifaces;
+        static std::map<std::size_t, Interface> m_interfaces;
         static std::map<std::size_t, std::string> m_names;
-        static std::map<std::size_t, std::vector<std::pair<std::string, Object>>> m_members;
+        static std::map<std::size_t, ObjectList> m_constructors;
+        static std::map<std::size_t, NamedObjectList> m_methods;
     };
 }
 

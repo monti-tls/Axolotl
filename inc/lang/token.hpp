@@ -28,8 +28,9 @@ namespace lang
     public:
         enum
         {
-            Invalid = -2,
-            Eof = -1
+            Invalid = -3,
+            Eof     = -2,
+            Skip    = -1
         };
 
     public:

@@ -14,9 +14,34 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bits/forward.hpp"
-#include "bits/buffer.hpp"
-#include "bits/basic_buffer.hpp"
-#include "bits/opcodes.hpp"
+#ifndef __AXOLOTL_BITS_DISASSEMBLER_H__
+#define __AXOLOTL_BITS_DISASSEMBLER_H__
+
 #include "bits/blob.hpp"
-#include "bits/disassembler.hpp"
+
+#include <iostream>
+
+namespace bits
+{
+    class Disassembler
+    {
+    public:
+        Disassembler(Blob const& blob, std::ostream& os);
+
+        void dumpAll();
+        void dumpStrings();
+        void dumpSymbols();
+        void dumpTypeSpecs();
+        void dumpConstants();
+        void dumpText();
+
+    private:
+        void M_dumpSignature(blob_idx sigidx);
+
+    private:
+        Blob const& m_blob;
+        std::ostream& m_os;
+    };
+}
+
+#endif // __AXOLOTL_BITS_DISASSEMBLER_H__

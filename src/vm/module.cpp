@@ -134,7 +134,7 @@ void Module::M_processConstants()
         if (!m_blob.string(cst->c_serialized, serialized))
             throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
         
-        addConstant(ObjectFactory::typeMember(type, lang::std_unserialize).invoke({ serialized }));
+        addConstant(ObjectFactory::typeMethod(type, lang::std_unserialize).invoke({ serialized }));
     });
 }
 

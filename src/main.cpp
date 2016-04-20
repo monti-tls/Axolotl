@@ -19,284 +19,6 @@ using namespace vm;
 using namespace lang;
 using namespace nfa;
 
-void dumpBlobStrings(Blob const& blob, std::ostream& os)
-{
-    os << "Strings :" << std::endl;
-    blob.foreachString([&](blob_idx sidx, std::string const& str)
-    {
-        os << "  [" << std::setw(4) << std::hex << sidx << std::dec << "] ";
-        os << str << std::endl;
-    });
-}
-
-void dumpBlobSignature(Blob const& blob, blob_idx sigidx, std::ostream& os)
-{
-    std::vector<std::string> args;
-    blob.foreachSignatureArgument(sigidx, [&](blob_off soff)
-    { args.push_back(blob.string(soff)); });
-
-    os << '(';
-    for (int i = 0; i < (int) args.size(); ++i)
-        os << args[i] << (i == (int) args.size() - 1 ? "" : ", ");
-    os << ')';
-}
-
-void dumpBlobSymbols(Blob const& blob, std::ostream& os)
-{
-    os << "Symbols :" << std::endl;
-    blob.foreachSymbol([&](blob_idx symidx, blob_symbol* sym)
-    {
-        os << "  [" << std::setw(4) << symidx << "] ";
-
-        if (sym->s_bind == BLOB_SYMB_NULL)
-            os << "NULL   ";
-        else if (sym->s_bind == BLOB_SYMB_LOCAL)
-            os << "LOCAL  ";
-        else if (sym->s_bind == BLOB_SYMB_GLOBAL)
-            os << "GLOBAL ";
-
-        if (sym->s_type == BLOB_SYMT_NULL)
-            os << "NULL     ";
-        else if (sym->s_type == BLOB_SYMT_FUNCTION)
-            os << "FUNCTION ";
-        else if (sym->s_type == BLOB_SYMT_METHOD)
-            os << "METHOD   ";
-
-        os << std::setw(8) << std::setfill('0') << std::hex
-           << sym->s_addr << std::setfill(' ') << std::dec << " ";
-
-        os << "locals:" << std::setw(2) << sym->s_nlocals << " ";
-
-        os << blob.string(sym->s_name);
-        dumpBlobSignature(blob, sym->s_signature, os);
-
-        os << std::endl;
-    });
-}
-
-void dumpBlobTypeSpecs(Blob const& blob, std::ostream& os)
-{
-    os << "Type specifications :" << std::endl;
-    blob.foreachTypeSpec([&](blob_idx tsidx, blob_typespec* tspec)
-    {
-        os << "  [" << std::setw(4) << tsidx << "] " << blob.string(tspec->ts_name) << std::endl;
-        blob.foreachTypeSpecSymbol(tsidx, [&](blob_idx symidx)
-        {
-            blob_symbol* sym = blob.symbol(symidx);
-            os << "         [" << std::setw(4) << symidx << "] " << blob.string(sym->s_name);
-            dumpBlobSignature(blob, sym->s_signature, os);
-            os << std::endl;
-        });
-    });
-}
-
-void dumpBlobConstants(Blob const& blob, std::ostream& os)
-{
-    os << "Constants :" << std::endl;
-    blob.foreachConstant([&](blob_idx cstidx, blob_constant* cst)
-    {
-        os << "  [" << std::setw(4) << cstidx << "] ";
-        os << std::setw(8) << std::left << blob.string(cst->c_type) << std::right << " ";
-        os << '\'' << blob.string(cst->c_serialized) << '\'' << std::endl;
-    });
-}
-
-void dumpBlobText(Blob const& blob, std::ostream& os)
-{
-    os << "Text section :" << std::endl;
-
-    std::shared_ptr<Buffer> text = blob.text();
-    if (!text)
-        return;
-    int count = (int) (text->size() / sizeof(uint32_t));
-
-    auto decodeInstruction = [&](int& pc, std::vector<int>& operands)
-    {
-        static std::map<Opcode, int> opcodes_nargs;
-        static bool opcodes_nargs_inited = false;
-
-        if (!opcodes_nargs_inited)
-        {   
-            #define OPCODE(name, nargs) opcodes_nargs[name] = nargs;
-            #include "bits/opcodes.inc"
-            #undef OPCODE
-
-            opcodes_nargs_inited = true;
-        }
-
-        auto fetch = [&]()
-        { return *((uint32_t*) text->raw(sizeof(uint32_t) * pc++, sizeof(uint32_t))); };
-
-        Opcode opcode = (Opcode) fetch();
-        for (int i = 0; i < opcodes_nargs[opcode]; ++i)
-            operands.push_back((int) fetch());
-
-        return opcode;
-    };
-
-    // Find all jump targets and allocate label names to them
-    int jmp_targets_count = 0;
-    std::map<int, std::pair<std::string, std::vector<int>>> jmp_targets;
-    for (int pc = 0; pc < count; )
-    {
-        std::vector<int> operands;
-        Opcode opcode = decodeInstruction(pc, operands);
-
-        bool is_jmp = false;
-        int target = 0;
-        switch (opcode)
-        {
-            case JMPR:
-            case JMPR_IF_FALSE:
-            case JMPR_IF_TRUE:
-            {
-                is_jmp = true;
-                target = pc + operands[0];
-                break;
-            }
-
-            case JMP:
-            case JMP_IF_FALSE:
-            case JMP_IF_TRUE:
-            {
-                is_jmp = true;
-                target = operands[0];
-                break;
-            }
-
-            default:
-                break;
-        }
-
-        if (is_jmp)
-        {
-            if (jmp_targets.find(target) == jmp_targets.end())
-            {
-                std::ostringstream ss;
-                ss << "t" << std::setw(3) << std::setfill('0') << jmp_targets_count++;
-                jmp_targets[target].first = ss.str();
-            }
-            jmp_targets[target].second.push_back(pc);
-        }
-    }
-
-    // Display the actual disassembly
-    for (int pc = 0; pc < count; )
-    {
-        // Find if this instruction begins a symbol
-        blob_symbol* symbol = nullptr;
-        blob.foreachSymbol([&](blob_idx, blob_symbol* sym)
-        {
-            if ((int) sym->s_addr == pc)
-                symbol = sym;
-        });
-
-        // If yes, display the symbol prototype
-        if (symbol)
-        {
-            os << std::endl << blob.string(symbol->s_name);
-            dumpBlobSignature(blob, symbol->s_signature, os);
-            os << ':' << std::endl;
-        }
-
-        // If this instruction is a jump target, display its label
-        bool is_jmp_target = jmp_targets.find(pc) != jmp_targets.end();
-        if (is_jmp_target)
-        {
-            os << jmp_targets[pc].first << " > ";
-        }
-        else
-            os << "       ";
-
-        // Decode the isntruction
-        std::vector<int> operands;
-        Opcode opcode = decodeInstruction(pc, operands);
-
-        // Display the mnemonic
-        os << std::setw(20) << std::left << opcode_as_string(opcode) << std::right;
-
-        switch (opcode)
-        {
-            case LOAD_CONST:
-            {
-                if (operands[0] < 0)
-                {
-                    os << "a" << (-1-operands[0]);
-                }
-                else
-                {
-                    blob_constant* cst = blob.constant(operands[0]);
-                    if (!cst)
-                        os << "<invalid>";
-                    else
-                        os << "(" << blob.string(cst->c_type) << ") '" << blob.string(cst->c_serialized) << "'";
-                }
-                break;
-            }
-
-            case LOAD_LOCAL:
-            case STOR_LOCAL:
-            {
-                os << "l" << operands[0];
-                break;
-            }
-
-            case LOAD_GLOBAL:
-            case STOR_GLOBAL:
-            {
-                std::string name;
-                if (!blob.string(operands[0], name))
-                    name = "<invalid>";
-                os << name;
-                break;
-            }
-
-            case INVOKE:
-                os << operands[0];
-                break;
-
-            case METHOD:
-            {
-                std::string name;
-                if (!blob.string(operands[0], name))
-                    name = "<invalid>";
-                os << name << ", " << operands[1];
-                break;
-            }
-
-            case JMPR:
-            case JMPR_IF_FALSE:
-            case JMPR_IF_TRUE:
-                os << jmp_targets[pc + operands[0]].first;
-                break;
-
-            case JMP:
-            case JMP_IF_FALSE:
-            case JMP_IF_TRUE:
-                os << jmp_targets[operands[0]].first;
-                break;
-
-            default:
-                break;
-        }
-
-        os << std::endl;
-    }
-}
-
-void dumpBlob(Blob const& blob, std::ostream& os)
-{
-    dumpBlobStrings(blob, os);
-    os << std::endl;
-    dumpBlobSymbols(blob, os);
-    os << std::endl;
-    dumpBlobTypeSpecs(blob, os);
-    os << std::endl;
-    dumpBlobConstants(blob, os);
-    os << std::endl;
-    dumpBlobText(blob, os);
-}
-
 Blob makeBlob()
 {
     Blob blob;
@@ -397,20 +119,21 @@ Blob makeBlob()
     return blob;
 }
 
-int main()
+void registerCoreTypes()
 {
     ObjectFactory::registerType(Signature::AnyTypeName,
         std::function<Object(Object const&)>([](Object const& o) { return o; }));
+}
 
-    ObjectFactory::registerType<vm::StackFrame>("@StackFrame",
-        ObjectFactory::memberList());
-
+void registerBuiltinTypes()
+{
     ObjectFactory::registerType<bool>("bool",
-        ObjectFactory::memberList()
-        (std_equals,    [](bool a, bool b) { return a == b; })
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
         (std_and,       [](bool a, bool b) { return a && b; })
         (std_or,        [](bool a, bool b) { return a || b; })
         (std_not,       [](bool a) { return !a; })
+        (std_equals,    [](bool a, bool b) { return a == b; })
         (std_serialize, [](bool a)
         {
             std::ostringstream ss;
@@ -428,7 +151,8 @@ int main()
         }));
 
     ObjectFactory::registerType<int>("int",
-        ObjectFactory::memberList()
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
         (std_add,       [](int a, int b) { return a + b; })
         (std_sub,       [](int a, int b) { return a - b; })
         (std_mul,       [](int a, int b) { return a * b; })
@@ -451,11 +175,13 @@ int main()
         }));
 
     ObjectFactory::registerType<float>("float",
-        ObjectFactory::memberList()
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
         (std_add,       [](float a, float b) { return a + b; })
         (std_sub,       [](float a, float b) { return a - b; })
         (std_mul,       [](float a, float b) { return a * b; })
         (std_div,       [](float a, float b) { return a / b; })
+        (std_mod,       [](float a, float b) { return std::fmod(a, b); })
         (std_equals,    [](float a, float b) { return a == b; })
         (std_serialize, [](float a)
         {
@@ -473,7 +199,8 @@ int main()
         }));
 
     ObjectFactory::registerType<char>("char",
-        ObjectFactory::memberList()
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
         (std_equals,    [](char a, char b) { return a == b; })
         (std_serialize, [](char a)
         {
@@ -491,66 +218,119 @@ int main()
         }));
 
     ObjectFactory::registerType<std::string>("string",
-        ObjectFactory::memberList()
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
         (std_equals,      [](std::string const& a, std::string const& b) { return a == b; })
         (std_serialize,   [](Object const& o) { return o; })
         (std_unserialize, [](Object const& o) { return o; })
-        ("append", [](std::string& s, char c) { s += c; })
-        ("size", [](std::string const& s) { return (int) s.size(); })
-        ("at", [](std::string const& s, int i) { return s[i]; }));
+        ("append",        [](std::string& s, char c) { s += c; })
+        ("size",          [](std::string const& s) { return (int) s.size(); })
+        ("at",            [](std::string const& s, int i) { return s[i]; }));
+}
+
+void registerOtherTypes()
+{
+    ObjectFactory::registerType<vm::StackFrame>("StackFrame",
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList()
+        ("pc",           [](StackFrame const& sf) { return sf.pc; })
+        ("locals_count", [](StackFrame const& sf) { return sf.locals_count; })
+        ("locals_start", [](StackFrame const& sf) { return sf.locals_start; })
+        ("argc",         [](StackFrame const& sf) { return sf.argc; }));
 
     ObjectFactory::registerType<Token>("Token",
-        ObjectFactory::memberList()
-        ("which", [](Token const& tok) { return tok.which(); })
-        ("what",  [](Token const& tok) { return tok.what(); }));
+        ObjectFactory::constructorList()
+        ([](int which, Object const& what) { return Token(which, what); }),
+        ObjectFactory::methodList()
+        (std_equals, [](Token const& tok, Token const& other) { return tok.which() == other.which(); })
+        (std_equals, [](Token const& tok, int which) { return tok.which() == which; })
+        ("which",    [](Token const& tok) { return tok.which(); })
+        ("what",     [](Token const& tok) { return tok.what(); }));
+}
+
+void registerAllTypes()
+{
+    registerCoreTypes();
+    registerBuiltinTypes();
+    registerOtherTypes();
+}
+
+int main()
+{
+    registerAllTypes();
 
     std::string s =
-    "if_axXx_1,x|xifaif,import,45,89.85";
+    "if_axXx_1,x|xifaif,import,45,89.85,yolo";
 
     std::istringstream ss;
     ss.str(s);
     
     Lexer lex(ss, 32);
 
-    lex.addDefinition("alpha", "'[a-zA-Z]'");
-    lex.addDefinition("digit", "'[0-9]'");
-    lex.addDefinition("alpha_", "alpha | '_'");
-    lex.addDefinition("alnum", "alpha | digit");
-    lex.addDefinition("alnum_", "alpha_ | digit");
+    enum
+    {
+        TOK_LPAREN,
+        TOK_RPAREN,
+        TOK_LBRACE,
+        TOK_RBRACE,
+        TOK_STAR,
+        TOK_COLON,
+        TOK_SEMICOLON,
+        TOK_COMMA,
+        TOK_DOT,
+        TOK_KW_FUN,
+        TOK_KW_IMPORT,
+        TOK_KW_IF,
+        TOK_KW_ELIF,
+        TOK_KW_ELSE,
+        TOK_KW_WHILE,
+        TOK_KW_DO,
+        TOK_KW_BREAK,
+        TOK_KW_CONTINUE,
+        TOK_KW_RETURN,
+        TOK_IDENTIFIER,
+        TOK_NUMBER
+    };
 
-    lex.addDefinition(
-        "comma",
-        "','",
-        [](std::string const&)
-        {
-            std::cout << "comma" << std::endl;
-            return Token(0);
-        });
+    lex.addDefinition("alpha",       "'[a-zA-Z]'");
+    lex.addDefinition("digit",       "'[0-9]'");
+    lex.addDefinition("hex_digit",   "'[0-9a-fA-F]'");
+    lex.addDefinition("alpha_",      "alpha | '_'");
+    lex.addDefinition("alnum",       "alpha | digit");
+    lex.addDefinition("alnum_",      "alpha_ | digit");
 
-    lex.addDefinition(
-        "identifier",
-        "alpha_ alnum_*",
-        [](std::string const& l)
-        {
-            std::cout << "identifier(" << l << ")" << std::endl;
-            return Token(1, l);
-        });
+    lex.addDefinition("lparen",      "'('",          Token(TOK_LPAREN));
+    lex.addDefinition("rparen",      "')'",          Token(TOK_RPAREN));
+    lex.addDefinition("lbrace",      "'{'",          Token(TOK_LBRACE));
+    lex.addDefinition("rbrace",      "'}'",          Token(TOK_RBRACE));
+    lex.addDefinition("star",        "'*'",          Token(TOK_STAR));
+    lex.addDefinition("colon",       "':'",          Token(TOK_COLON));
+    lex.addDefinition("semicolon",   "';'",          Token(TOK_SEMICOLON));
+    lex.addDefinition("comma",       "','",          Token(TOK_COMMA));
+    lex.addDefinition("dot",         "'.'",          Token(TOK_DOT));
 
-    lex.addDefinition(
-        "number",
-        "digit+ ('.' digit+)*",
-        [](std::string const& l)
-        {
-            std::istringstream ss;
-            ss.str(l);
-            float num;
-            ss >> num;
-            std::cout << "number(" << num << ")" << std::endl;
-            if (((int) num) == num)
-                return Token(2, (int) num);
-            else
-                return Token(2, (float) num);
-        });
+    lex.addDefinition("kw_fun",      "\"fun\"",      Token(TOK_KW_FUN));
+    lex.addDefinition("kw_import",   "\"import\"",   Token(TOK_KW_IMPORT));
+    lex.addDefinition("kw_if",       "\"if\"",       Token(TOK_KW_IF));
+    lex.addDefinition("kw_elif",     "\"elif\"",     Token(TOK_KW_ELIF));
+    lex.addDefinition("kw_else",     "\"else\"",     Token(TOK_KW_ELSE));
+    lex.addDefinition("kw_while",    "\"while\"",    Token(TOK_KW_WHILE));
+    lex.addDefinition("kw_do",       "\"do\"",       Token(TOK_KW_DO));
+    lex.addDefinition("kw_break",    "\"break\"",    Token(TOK_KW_BREAK));
+    lex.addDefinition("kw_continue", "\"continue\"", Token(TOK_KW_CONTINUE));
+    lex.addDefinition("kw_return",   "\"return\"",   Token(TOK_KW_RETURN));
+
+    lex.addDefinition("identifier",  "alpha_ alnum_*",
+    [](std::string const& lexeme)
+    {
+        return Token(TOK_IDENTIFIER, lexeme);
+    });
+
+    lex.addDefinition("number",  "digit+ ('.' digit+)?",
+    [](std::string const& lexeme)
+    {
+        return Token(TOK_NUMBER, lexeme);
+    });
 
     lex.build();
 
@@ -558,93 +338,21 @@ int main()
     do
     {
         tok = lex.M_getToken();
+        if (tok.which() == Token::Invalid)
+            std::cout << "<invalid>" << std::endl;
     } while (tok.which() != Token::Eof);
+
+    return 0;
 }
 
 int main2()
 {
-    ObjectFactory::registerType(Signature::AnyTypeName,
-        std::function<Object(Object const&)>([](Object const& o) { return o; }));
-
-    ObjectFactory::registerType<vm::StackFrame>("@StackFrame",
-        ObjectFactory::memberList());
-
-    ObjectFactory::registerType<bool>("bool",
-        ObjectFactory::memberList()
-        (std_equals,    [](bool a, bool b) { return a == b; })
-        (std_and,       [](bool a, bool b) { return a && b; })
-        (std_or,        [](bool a, bool b) { return a || b; })
-        (std_not,       [](bool a) { return !a; })
-        (std_serialize, [](bool a)
-        {
-            std::ostringstream ss;
-            ss << std::boolalpha;
-            ss << a;
-            return ss.str();
-        })
-        (std_unserialize, [](std::string const& s)
-        {
-            std::istringstream ss;
-            ss.str(s);
-            bool a;
-            ss >> std::boolalpha >> a;
-            return a;
-        }));
-
-    ObjectFactory::registerType<int>("int",
-        ObjectFactory::memberList()
-        (std_add,       [](int a, int b) { return a + b; })
-        (std_sub,       [](int a, int b) { return a - b; })
-        (std_mul,       [](int a, int b) { return a * b; })
-        (std_div,       [](int a, int b) { return a / b; })
-        (std_mod,       [](int a, int b) { return a % b; })
-        (std_equals,    [](int a, int b) { return a == b; })
-        (std_serialize, [](int a)
-        {
-            std::ostringstream ss;
-            ss << a;
-            return ss.str();
-        })
-        (std_unserialize, [](std::string const& s)
-        {
-            std::istringstream ss;
-            ss.str(s);
-            int a;
-            ss >> a;
-            return a;
-        }));
-
-    ObjectFactory::registerType<char>("char",
-        ObjectFactory::memberList()
-        (std_equals,    [](char a, char b) { return a == b; })
-        (std_serialize, [](char a)
-        {
-            std::ostringstream ss;
-            ss << a;
-            return ss.str();
-        })
-        (std_unserialize, [](std::string const& s)
-        {
-            std::istringstream ss;
-            ss.str(s);
-            char a;
-            ss >> a;
-            return a;
-        }));
-
-    ObjectFactory::registerType<std::string>("string",
-        ObjectFactory::memberList()
-        (std_equals,      [](std::string const& a, std::string const& b) { return a == b; })
-        (std_serialize,   [](Object const& o) { return o; })
-        (std_unserialize, [](Object const& o) { return o; })
-        // (std_del, [](std::string const& s) { std::cout << "__del__(" << &s << " '" << s << "')" << std::endl; })
-        ("append", [](std::string& s, char c) { s += c; })
-        ("size", [](std::string const& s) { return (int) s.size(); })
-        ("at", [](std::string const& s, int i) { return s[i]; }));
+    registerAllTypes();
 
     Blob blob = makeBlob();
 
-    // dumpBlob(blob, std::cout);
+    Disassembler dis(blob, std::cout);
+    dis.dumpAll();
 
     Module module(blob);
     module.global("debug").newPolymorphic(std_call) = [](int a) {std::cout << "(int) " << a << std::endl;};
