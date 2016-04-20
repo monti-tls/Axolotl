@@ -19,6 +19,8 @@
 
 #include "lang/nfa_state.hpp"
 #include "lang/regular_definition.hpp"
+#include "lang/token.hpp"
+#include "core/core.hpp"
 
 #include <string>
 #include <iostream>
@@ -33,9 +35,9 @@ namespace lang
         ~Lexer();
 
         void rewind();
-        void addDefinition(std::string const& name, std::string const& definition, bool top_level = false);
+        void addDefinition(std::string const& name, std::string const& definition, core::Object const& build_token = core::Object::nil());
         void build();
-        void get();
+        Token M_getToken();
 
     private:
         void M_allocateBuffers();
@@ -47,6 +49,7 @@ namespace lang
         void M_retractForward();
         std::string M_getLexeme();
         void M_addStateInList(nfa::State* state, std::vector<nfa::State*>& state_list);
+        void M_releaseNfa();
 
     private:
         std::istream& m_in;

@@ -399,29 +399,166 @@ Blob makeBlob()
 
 int main()
 {
+    ObjectFactory::registerType(Signature::AnyTypeName,
+        std::function<Object(Object const&)>([](Object const& o) { return o; }));
+
+    ObjectFactory::registerType<vm::StackFrame>("@StackFrame",
+        ObjectFactory::memberList());
+
+    ObjectFactory::registerType<bool>("bool",
+        ObjectFactory::memberList()
+        (std_equals,    [](bool a, bool b) { return a == b; })
+        (std_and,       [](bool a, bool b) { return a && b; })
+        (std_or,        [](bool a, bool b) { return a || b; })
+        (std_not,       [](bool a) { return !a; })
+        (std_serialize, [](bool a)
+        {
+            std::ostringstream ss;
+            ss << std::boolalpha;
+            ss << a;
+            return ss.str();
+        })
+        (std_unserialize, [](std::string const& s)
+        {
+            std::istringstream ss;
+            ss.str(s);
+            bool a;
+            ss >> std::boolalpha >> a;
+            return a;
+        }));
+
+    ObjectFactory::registerType<int>("int",
+        ObjectFactory::memberList()
+        (std_add,       [](int a, int b) { return a + b; })
+        (std_sub,       [](int a, int b) { return a - b; })
+        (std_mul,       [](int a, int b) { return a * b; })
+        (std_div,       [](int a, int b) { return a / b; })
+        (std_mod,       [](int a, int b) { return a % b; })
+        (std_equals,    [](int a, int b) { return a == b; })
+        (std_serialize, [](int a)
+        {
+            std::ostringstream ss;
+            ss << a;
+            return ss.str();
+        })
+        (std_unserialize, [](std::string const& s)
+        {
+            std::istringstream ss;
+            ss.str(s);
+            int a;
+            ss >> a;
+            return a;
+        }));
+
+    ObjectFactory::registerType<float>("float",
+        ObjectFactory::memberList()
+        (std_add,       [](float a, float b) { return a + b; })
+        (std_sub,       [](float a, float b) { return a - b; })
+        (std_mul,       [](float a, float b) { return a * b; })
+        (std_div,       [](float a, float b) { return a / b; })
+        (std_equals,    [](float a, float b) { return a == b; })
+        (std_serialize, [](float a)
+        {
+            std::ostringstream ss;
+            ss << a;
+            return ss.str();
+        })
+        (std_unserialize, [](std::string const& s)
+        {
+            std::istringstream ss;
+            ss.str(s);
+            int a;
+            ss >> a;
+            return a;
+        }));
+
+    ObjectFactory::registerType<char>("char",
+        ObjectFactory::memberList()
+        (std_equals,    [](char a, char b) { return a == b; })
+        (std_serialize, [](char a)
+        {
+            std::ostringstream ss;
+            ss << a;
+            return ss.str();
+        })
+        (std_unserialize, [](std::string const& s)
+        {
+            std::istringstream ss;
+            ss.str(s);
+            char a;
+            ss >> a;
+            return a;
+        }));
+
+    ObjectFactory::registerType<std::string>("string",
+        ObjectFactory::memberList()
+        (std_equals,      [](std::string const& a, std::string const& b) { return a == b; })
+        (std_serialize,   [](Object const& o) { return o; })
+        (std_unserialize, [](Object const& o) { return o; })
+        ("append", [](std::string& s, char c) { s += c; })
+        ("size", [](std::string const& s) { return (int) s.size(); })
+        ("at", [](std::string const& s, int i) { return s[i]; }));
+
+    ObjectFactory::registerType<Token>("Token",
+        ObjectFactory::memberList()
+        ("which", [](Token const& tok) { return tok.which(); })
+        ("what",  [](Token const& tok) { return tok.what(); }));
+
     std::string s =
-    "if_axxx_1xxxx|if|aif";
+    "if_axXx_1,x|xifaif,import,45,89.85";
 
     std::istringstream ss;
     ss.str(s);
     
-    Lexer lex(ss, 8);
+    Lexer lex(ss, 32);
 
-    lex.addDefinition("letter",
-        "'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z'|"
-        "'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z'");
-    lex.addDefinition("digit", "'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'");
+    lex.addDefinition("alpha", "'[a-zA-Z]'");
+    lex.addDefinition("digit", "'[0-9]'");
+    lex.addDefinition("alpha_", "alpha | '_'");
+    lex.addDefinition("alnum", "alpha | digit");
+    lex.addDefinition("alnum_", "alpha_ | digit");
 
-    lex.addDefinition("kw_if", "\"if\"", true);
-    lex.addDefinition("ident", "('_' | letter) ('_' | letter | digit)*", true);
-    lex.addDefinition("pipe", "'|'", true);
+    lex.addDefinition(
+        "comma",
+        "','",
+        [](std::string const&)
+        {
+            std::cout << "comma" << std::endl;
+            return Token(0);
+        });
+
+    lex.addDefinition(
+        "identifier",
+        "alpha_ alnum_*",
+        [](std::string const& l)
+        {
+            std::cout << "identifier(" << l << ")" << std::endl;
+            return Token(1, l);
+        });
+
+    lex.addDefinition(
+        "number",
+        "digit+ ('.' digit+)*",
+        [](std::string const& l)
+        {
+            std::istringstream ss;
+            ss.str(l);
+            float num;
+            ss >> num;
+            std::cout << "number(" << num << ")" << std::endl;
+            if (((int) num) == num)
+                return Token(2, (int) num);
+            else
+                return Token(2, (float) num);
+        });
+
     lex.build();
 
-    lex.get();
-    lex.get();
-    lex.get();
-    lex.get();
-    lex.get();
+    Token tok(Token::Eof);
+    do
+    {
+        tok = lex.M_getToken();
+    } while (tok.which() != Token::Eof);
 }
 
 int main2()

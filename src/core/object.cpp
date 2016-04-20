@@ -79,6 +79,9 @@ bool Object::isCallable() const
 bool Object::isInvokable() const
 { return isCallable() || has(lang::std_call); }
 
+bool Object::isNil() const
+{ return classname() == lang::std_nil_classname; }
+
 std::string Object::classname() const
 { return m_impl->classname; }
 

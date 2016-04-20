@@ -35,16 +35,17 @@ namespace lang
             enum
             {
                 EOL,
-                IDENTIFIER,
                 STRING,
                 CHAR,
+                CHAR_CLASS,
                 DOT,
                 LPAREN,
                 RPAREN,
                 STAR,
                 PLUS,
                 QUESTION_MARK,
-                PIPE
+                PIPE,
+                IDENTIFIER
             } which;
 
             core::Some what;
@@ -64,6 +65,7 @@ namespace lang
         void M_skipSpaces();
         Token const& M_nextToken();
         Token M_getToken();
+        char M_escapeSequence();
         void M_eatToken(int check);
         void M_lexerError(std::string const& msg);
         nfa::Fragment M_alternation();

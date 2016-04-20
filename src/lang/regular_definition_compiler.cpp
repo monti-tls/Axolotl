@@ -33,6 +33,7 @@ void RegularDefinitionCompiler::rewind()
     m_in.seekg(0);
     m_line = 1;
     m_col = 0;
+    m_next_char = 0;
     M_getChar();
     M_getToken();
 }
@@ -102,30 +103,66 @@ RegularDefinitionCompiler::Token RegularDefinitionCompiler::M_getToken()
         {
             M_eatChar('\'');
 
-            int c = M_getChar();
-            if (c == '\\')
+            char c;
+            switch (M_nextChar())
             {
-                c = M_getChar();
-                switch (c)
+                case '\\':
+                    c = M_escapeSequence();
+                    break;
+
+                case '[':
                 {
-                    case '\\':
-                        c = '\\';
-                        break;
+                    M_eatChar('[');
 
-                    case '\'':
-                        c = '\'';
-                        break;
+                    bool invert = false;
+                    if (M_nextChar() == '^')
+                    {
+                        M_eatChar('^');
+                        invert = true;
+                    }
 
-                    default:
-                        M_lexerError("undefined escape sequence");
-                        break;
+                    std::vector<std::pair<char, char>> ranges;
+                    while (M_nextChar() != ']')
+                    {
+                        char low;
+                        if (M_nextChar() == '\\')
+                            low = M_escapeSequence();
+                        else
+                            low = M_getChar();
+
+                        char high = low;
+                        if (M_nextChar() == '-')
+                        {
+                            M_getChar();
+
+                            if (M_nextChar() == '\\')
+                                high = M_escapeSequence();
+                            else
+                                high = M_getChar();
+                        }
+
+                        ranges.push_back(std::make_pair(low, high));
+                    }
+
+                    M_eatChar(']');
+                    M_eatChar('\'');
+
+                    m_next_token.which = Token::CHAR_CLASS;
+                    m_next_token.what = std::make_pair(invert, ranges);
+                    goto break_outer;
                 }
 
+                default:
+                    c = M_getChar();
+                    break;
             }
+
             M_eatChar('\'');
 
             m_next_token.which = Token::CHAR;
-            m_next_token.what = (char) c;
+            m_next_token.what = c;
+
+            break_outer:
             break;
         }
 
@@ -137,25 +174,13 @@ RegularDefinitionCompiler::Token RegularDefinitionCompiler::M_getToken()
 
             while (M_nextChar() != '"')
             {
-                int c = M_getChar();
-                if (c == '\\')
-                {
+                char c;
+
+                if (M_nextChar() == '\\')
+                    c = M_escapeSequence();
+                else
                     c = M_getChar();
-                    switch (c)
-                    {
-                        case '\\':
-                            c = '\\';
-                            break;
 
-                        case '\'':
-                            c = '\'';
-                            break;
-
-                        default:
-                            M_lexerError("undefined escape sequence");
-                            break;
-                    }
-                }
                 s += c;
             }
             M_eatChar('"');
@@ -224,6 +249,45 @@ RegularDefinitionCompiler::Token RegularDefinitionCompiler::M_getToken()
     }
 
     return tok;
+}
+
+char RegularDefinitionCompiler::M_escapeSequence()
+{
+    char c = M_getChar();
+    if (c != '\\')
+        throw std::runtime_error("lang::RegularDefinitionCompiler::M_escapeSequence: not an escace sequence");
+
+    c = M_getChar();
+    switch (c)
+    {
+        case '\\':
+            c = '\\';
+            break;
+
+        case '\'':
+            c = '\'';
+            break;
+
+        case '"':
+            c = '"';
+            break;
+
+        case ']':
+            c = ']';
+            break;
+
+        case '^':
+            c = '^';
+
+        case '-':
+            c = '-';
+
+        default:
+            M_lexerError("undefined escape sequence");
+            break;
+    }
+
+    return c;
 }
 
 void RegularDefinitionCompiler::M_eatToken(int check)
@@ -317,7 +381,11 @@ Fragment RegularDefinitionCompiler::M_atom()
             if (it->second.start)
                 M_parserError(tok, "use of top-level definition '" + id + "'");
 
-            return it->second.fragment;
+            std::istringstream ss;
+            ss.str(it->second.as_string);
+            RegularDefinitionCompiler rxc(ss, m_defs);
+
+            return rxc.compile();
         }
 
         case Token::STRING:
@@ -330,6 +398,17 @@ Fragment RegularDefinitionCompiler::M_atom()
         {
             Token tok = M_getToken();
             return Fragment::match(tok.what.as<char>());
+        }
+
+        case Token::CHAR_CLASS:
+        {
+            Token tok = M_getToken();
+            std::pair<bool, std::vector<std::pair<char, char>>> cls = tok.what.as<decltype(cls)>();
+
+            if (!cls.second.size())
+                M_parserError(tok, "empty character class");
+
+            return Fragment::charClass(cls);
         }
 
         case Token::DOT:

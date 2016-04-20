@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace lang
 {
@@ -48,6 +49,8 @@ namespace lang
             static Fragment match(char c);
 
             static Fragment string(std::string const& s);
+
+            static Fragment charClass(std::pair<bool, std::vector<std::pair<char, char>>> const& cls);
 
             //! Build a fragment matching any character.
             static Fragment wildcard();

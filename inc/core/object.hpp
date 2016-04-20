@@ -55,6 +55,7 @@ namespace core
         bool isScalar() const;
         bool isCallable() const;
         bool isInvokable() const;
+        bool isNil() const;
         std::string classname() const;
 
         bool has(std::string const& id) const;

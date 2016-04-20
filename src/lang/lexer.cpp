@@ -16,13 +16,16 @@
 
 #include "lang/lexer.hpp"
 #include "lang/regular_definition_compiler.hpp"
+#include "core/core.hpp"
 
 #include <sstream>
 #include <stack>
 #include <stdexcept>
+#include <set>
 
 using namespace lang;
 using namespace nfa;
+using namespace core;
 
 Lexer::Lexer(std::istream& in, std::size_t buffer_size)
     : m_in(in)
@@ -35,7 +38,10 @@ Lexer::Lexer(std::istream& in, std::size_t buffer_size)
 }
 
 Lexer::~Lexer()
-{ M_releaseBuffers(); }
+{
+    M_releaseNfa();
+    M_releaseBuffers();
+}
 
 void Lexer::rewind()
 {
@@ -47,10 +53,10 @@ void Lexer::rewind()
     M_loadBuffer(m_right);
 }
 
-void Lexer::addDefinition(std::string const& name, std::string const& definition, bool top_level)
+void Lexer::addDefinition(std::string const& name, std::string const& definition, Object const& build_token)
 {
     if (m_defs.find(name) != m_defs.end())
-        throw std::runtime_error("Lexer::addDefinition: redefining `" + name + "'");
+        throw std::runtime_error("lang::Lexer::addDefinition: redefining `" + name + "'");
 
     std::istringstream ss;
     ss.str(definition);
@@ -58,11 +64,12 @@ void Lexer::addDefinition(std::string const& name, std::string const& definition
     RegularDefinitionCompiler compiler(ss, m_defs);
     RegularDefinition& def = m_defs[name];
 
-    def.fragment = compiler.compile();
+    def.as_string = definition;
     def.start = nullptr;
-
-    if (top_level)
+    if (!build_token.isNil())
     {
+        def.fragment = compiler.compile();
+
         MatchState* match = new MatchState();
         match->what = State::Match;
         match->defname = name;
@@ -70,13 +77,17 @@ void Lexer::addDefinition(std::string const& name, std::string const& definition
 
         def.start = def.fragment.start();
         def.priority = ++m_defs_priority;
+        def.build_token = build_token;
     }
 }
 
 void Lexer::build()
 {
     if (!m_defs.size())
-        throw std::runtime_error("Lexer::build: there are no definitions");
+        throw std::runtime_error("lang::Lexer::build: there are no definitions");
+
+    if (m_nfa_start)
+        throw std::runtime_error("lang::Lexer::build: NFA is already built");
 
     Fragment frag;
     bool first = true;
@@ -96,19 +107,19 @@ void Lexer::build()
     }
 
     if (first)
-        throw std::runtime_error("Lexer::build: there are no top-level definitions");
+        throw std::runtime_error("lang::Lexer::build: there are no top-level definitions");
 
     m_nfa_start = frag.start();
 }
 
-void Lexer::get()
+Token Lexer::M_getToken()
 {
     if (!m_nfa_start)
-        throw std::runtime_error("Lexer::get: Lexer::build() must be called before using the parser");
-    
+        throw std::runtime_error("lang::Lexer::M_getToken: lang::Lexer::build() must be called before using the parser");
+
     // If the EOF bit is set, don't do anything
     if (m_eof)
-        return;
+        return Token(Token::Eof);
 
     //! This structure holds a match state
     struct Match
@@ -152,9 +163,21 @@ void Lexer::get()
             {
                 M_addStateInList(state->out[0], next_state_list);
             }
-            else if (c == state->what)
+            else if (state->what == State::Range)
             {
-                M_addStateInList(state->out[0], next_state_list);
+                bool in_class = false;
+                for (CharClass* cls = state->char_class; cls; cls = cls->next)
+                {
+                    in_class = in_class || (c >= cls->low && c <= cls->high);
+                    if (in_class)
+                        break;
+                }
+
+                if (state->invert)
+                    in_class = !in_class;
+
+                if (in_class)
+                    M_addStateInList(state->out[0], next_state_list);
             }
         }
 
@@ -169,7 +192,10 @@ void Lexer::get()
     }
 
     if (!match_list.size())
-        throw std::runtime_error("Lexer::get: unknown token");
+    {
+        M_resetBegin();
+        return Token(Token::Invalid);
+    }
 
     // Search for the deepest match
     std::size_t max_size = 0;
@@ -199,20 +225,24 @@ void Lexer::get()
         {
             // Reset our forward pointer so we can process further tokens
             m_forward = m.forward;
-            if (*m_forward) //FIXME: ????
+            if (*m_forward)
                 M_retractForward();
 
             // Setup the token we return
-            std::cout << "Matched " << m.state->defname << ": " << M_getLexeme() << std::endl;
+            Object obj = m_defs[m.state->defname].build_token(M_getLexeme());
+            if (!obj.meta().is<Token>())
+                throw std::runtime_error("lang::Lexer::M_getToken: invalid token object");
+            Token tok = obj.unwrap<Token>();
 
             // Reset our begin pointer so that it points
             //   to the beginning of the next lexeme
             M_resetBegin();
-            return;
+
+            return tok;
         }
     }
 
-    throw std::runtime_error("Lexer::get: internal error (priority mess)");
+    throw std::runtime_error("lang::Lexer::M_getToken: internal error (priority mess)");
 }
 
 void Lexer::M_allocateBuffers()
@@ -230,7 +260,7 @@ void Lexer::M_releaseBuffers()
 void Lexer::M_loadBuffer(std::size_t id)
 {
     if (id >= 2)
-        throw std::runtime_error("Lexer::M_loadBuffer: invalid buffer index");
+        throw std::runtime_error("lang::Lexer::M_loadBuffer: invalid buffer index");
 
     m_in.read(m_buffers[id], m_buffer_size);
     if (!m_in)
@@ -259,7 +289,7 @@ void Lexer::M_resetBegin()
         if (m_begin == m_buffers[m_left] + m_buffer_size)
             m_begin = m_buffers[m_right];
         else if (m_begin == m_buffers[m_right] + m_buffer_size)
-            throw std::runtime_error("Lexer::M_resetBegin: internal error");
+            throw std::runtime_error("lang::Lexer::M_resetBegin: internal error");
         else
             m_eof = true;
     }
@@ -288,7 +318,7 @@ char Lexer::M_advanceForward()
             //   it would invalid our B pointer
             if (m_begin >= m_buffers[m_left] &&
                 m_begin <= m_buffers[m_left] + m_buffer_size)
-                throw std::runtime_error("Lexer::M_advanceForward: lookahead limit reached");
+                throw std::runtime_error("lang::Lexer::M_advanceForward: lookahead limit reached");
 
             // Load the next buffer into (L)
             M_loadBuffer(m_left);
@@ -318,7 +348,7 @@ void Lexer::M_retractForward()
     if (m_forward == m_buffers[m_right])
         m_forward = m_buffers[m_left] + m_buffer_size - 1;
     else if (m_forward == m_buffers[m_left])
-        throw std::runtime_error("Lexer::M_retractForward: can't retract past the left buffer");
+        throw std::runtime_error("lang::Lexer::M_retractForward: can't retract past the left buffer");
     else
         --m_forward;
 }
@@ -338,7 +368,6 @@ std::string Lexer::M_getLexeme()
     if (it == m_buffers[m_left] + m_buffer_size)
         it = m_buffers[m_right];
 
-    //FIXME: ????
     if (it == m_forward)
         return lexeme;
 
@@ -371,5 +400,40 @@ void Lexer::M_addStateInList(State* state, std::vector<State*>& state_list)
         }
         else
             state_list.push_back(state);
+    }
+}
+
+void Lexer::M_releaseNfa()
+{
+    if (!m_nfa_start)
+        return;
+
+    std::set<State*> all_states;
+    std::stack<State*> stack;
+    stack.push(m_nfa_start);
+
+    while (stack.size())
+    {
+        State* state = stack.top();
+        stack.pop();
+
+        all_states.emplace(state);
+
+        if (state->out[0] && all_states.find(state->out[0]) == all_states.end())
+            stack.push(state->out[0]);
+        if (state->out[1] && all_states.find(state->out[1]) == all_states.end())
+            stack.push(state->out[1]);
+    }
+
+    for (auto s : all_states)
+    {
+        for (CharClass* cls = s->char_class; cls; )
+        {
+            CharClass* next = cls->next;
+            delete cls;
+            cls = next;
+        }
+
+        delete s;
     }
 }

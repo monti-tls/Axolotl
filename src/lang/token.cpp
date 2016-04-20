@@ -14,33 +14,18 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_REGULAR_DEFINITION_H__
-#define __AXOLOTL_LANG_REGULAR_DEFINITION_H__
+#include "lang/token.hpp"
 
-#include "lang/nfa_state.hpp"
-#include "lang/nfa_fragment.hpp"
-#include "core/core.hpp"
+using namespace lang;
+using namespace core;
 
-#include <string>
+Token::Token(int which, Object const& what)
+    : m_which(which)
+    , m_what(what)
+{}
 
-namespace lang
-{
-    struct RegularDefinition
-    {
-        std::string as_string;
+int Token::which() const
+{ return m_which; }
 
-        nfa::Fragment fragment;
-
-        //! Start state of the definition's NFA
-        //! Non-null only for top-level definitions
-        nfa::State* start;
-
-        //! Priority of this definiton, the lowest this value
-        //!   is, more this definition is strong
-        int priority;
-
-        core::Object build_token;
-    };
-}
-
-#endif // __AXOLOTL_LANG_REGULAR_DEFINITION_H__
+Object const& Token::what() const
+{ return m_what; }

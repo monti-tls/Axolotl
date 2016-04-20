@@ -62,7 +62,10 @@ void Fragment::patch(State* to)
 Fragment Fragment::match(char c)
 {
     State* state = new State;
-    state->what = (int) c;
+    state->what = State::Range;
+    state->char_class = new CharClass();
+    state->char_class->low = c;
+    state->char_class->high = c;
     return Fragment(state, { &state->out[0] });
 }
 
@@ -77,6 +80,24 @@ Fragment Fragment::string(std::string const& s)
         frag = concatenate(frag, match(s[i]));
 
     return frag;
+}
+
+Fragment Fragment::charClass(std::pair<bool, std::vector<std::pair<char, char>>> const& cls)
+{
+    State* state = new State;
+    state->what = State::Range;
+
+    CharClass** next = &state->char_class;
+    for (int i = 0; i < (int) cls.second.size(); ++i)
+    {
+        *next = new CharClass();
+        (*next)->low = cls.second[i].first;
+        (*next)->high = cls.second[i].second;
+        next = &(*next)->next;
+    }
+    state->invert = cls.first;
+
+    return Fragment(state, { &state->out[0] });
 }
 
 Fragment Fragment::wildcard()

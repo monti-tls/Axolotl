@@ -14,43 +14,34 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_NFA_STATE_H__
-#define __AXOLOTL_LANG_NFA_STATE_H__
+#ifndef __AXOLOTL_LANG_TOKEN_H__
+#define __AXOLOTL_LANG_TOKEN_H__
+
+#include "core/core.hpp"
 
 #include <string>
 
 namespace lang
 {
-    namespace nfa
+    class Token
     {
-        struct CharClass
+    public:
+        enum
         {
-            int low, high;
-            CharClass* next = nullptr;
+            Invalid = -2,
+            Eof = -1
         };
 
-        struct State
-        {
-            enum Kind
-            {
-                Wildcard,
-                Range,
-                Split,
-                Match
-            };
+    public:
+        Token(int which, core::Object const& what = core::Object::nil());
 
-            int what;
-            CharClass* char_class = nullptr;
-            bool invert = false;
+        int which() const;
+        core::Object const& what() const;
 
-            State* out[2] = { nullptr, nullptr };
-        };
-
-        struct MatchState : public State
-        {
-            std::string defname;
-        };
-    }
+    private:
+        int m_which;
+        core::Object m_what;
+    };
 }
 
-#endif // __AXOLOTL_LANG_NFA_STATE_H__
+#endif // __AXOLOTL_LANG_TOKEN_H__
