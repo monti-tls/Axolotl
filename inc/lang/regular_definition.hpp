@@ -17,8 +17,8 @@
 #ifndef __AXOLOTL_LANG_REGULAR_DEFINITION_H__
 #define __AXOLOTL_LANG_REGULAR_DEFINITION_H__
 
-#include "lang/nfa_state.hpp"
-#include "lang/nfa_fragment.hpp"
+#include "lang/nfa/state.hpp"
+#include "lang/nfa/fragment.hpp"
 #include "core/core.hpp"
 
 #include <string>

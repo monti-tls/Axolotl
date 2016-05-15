@@ -17,7 +17,7 @@
 #ifndef __AXOLOTL_LANG_REGULAR_DEFINITION_COMPILER_H__
 #define __AXOLOTL_LANG_REGULAR_DEFINITION_COMPILER_H__
 
-#include "lang/nfa_fragment.hpp"
+#include "lang/nfa/fragment.hpp"
 #include "lang/regular_definition.hpp"
 #include "core/core.hpp"
 

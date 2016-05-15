@@ -14,24 +14,29 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_FORWARD_H__
-#define __AXOLOTL_LANG_FORWARD_H__
+#ifndef __AXOLOTL_LANG_PASS_BIND_NAMES_H__
+#define __AXOLOTL_LANG_PASS_BIND_NAMES_H__
 
-#include "lang/nfa/forward.hpp"
-#include "lang/ast/forward.hpp"
-#include "lang/pass/forward.hpp"
+#include "lang/forward.hpp"
+#include "lang/ast/node_visitor.hpp"
 
 namespace lang
 {
-    struct RegularDefinition;
-    class RegularDefinitionCompiler;
-    class Lexer;
-    class Token;
-    class ParserBase;
-    class Parser;
-    class Symbol;
-    class Symtab;
-    class Compiler;
+    namespace pass
+    {
+        //! Stage   : AST -> AST
+        //! Modifies: all scopes
+        //! This pass binds names to the scope using appropriate
+        //!   binding (local or global)
+        class BindNames : public ast::NodeVisitor
+        {
+        public:
+            using NodeVisitor::NodeVisitor;
+            virtual ~BindNames();
+
+            void visit(ast::AssignNode* node);
+        };
+    }
 }
 
-#endif // __AXOLOTL_LANG_FORWARD_H__
+#endif // __AXOLOTL_LANG_PASS_BIND_NAMES_H__

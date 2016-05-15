@@ -14,24 +14,29 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_FORWARD_H__
-#define __AXOLOTL_LANG_FORWARD_H__
+#ifndef __AXOLOTL_LANG_PASS_GENERATE_IR_H__
+#define __AXOLOTL_LANG_PASS_GENERATE_IR_H__
 
-#include "lang/nfa/forward.hpp"
-#include "lang/ast/forward.hpp"
-#include "lang/pass/forward.hpp"
+#include "lang/forward.hpp"
+#include "lang/ast/node_generator.hpp"
 
 namespace lang
 {
-    struct RegularDefinition;
-    class RegularDefinitionCompiler;
-    class Lexer;
-    class Token;
-    class ParserBase;
-    class Parser;
-    class Symbol;
-    class Symtab;
-    class Compiler;
+    namespace pass
+    {
+        class GenerateIR : public ast::NodeGenerator
+        {
+        public:
+            using NodeGenerator::NodeGenerator;
+            ~GenerateIR();
+
+            void visit(ast::ProgNode* node);
+            void visit(ast::FunDeclNode* node);
+            void visit(ast::ReturnNode* node);
+            void visit(ast::AssignNode* node);
+            void visitDefault(ast::Node* node);
+        };
+    }
 }
 
-#endif // __AXOLOTL_LANG_FORWARD_H__
+#endif // __AXOLOTL_LANG_PASS_GENERATE_IR_H__

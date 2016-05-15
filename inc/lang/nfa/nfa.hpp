@@ -14,24 +14,6 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_FORWARD_H__
-#define __AXOLOTL_LANG_FORWARD_H__
-
 #include "lang/nfa/forward.hpp"
-#include "lang/ast/forward.hpp"
-#include "lang/pass/forward.hpp"
-
-namespace lang
-{
-    struct RegularDefinition;
-    class RegularDefinitionCompiler;
-    class Lexer;
-    class Token;
-    class ParserBase;
-    class Parser;
-    class Symbol;
-    class Symtab;
-    class Compiler;
-}
-
-#endif // __AXOLOTL_LANG_FORWARD_H__
+#include "lang/nfa/state.hpp"
+#include "lang/nfa/fragment.hpp"

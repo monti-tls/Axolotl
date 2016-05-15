@@ -17,7 +17,7 @@
 #ifndef __AXOLOTL_LANG_LEXER_H__
 #define __AXOLOTL_LANG_LEXER_H__
 
-#include "lang/nfa_state.hpp"
+#include "lang/nfa/state.hpp"
 #include "lang/regular_definition.hpp"
 #include "lang/token.hpp"
 #include "core/core.hpp"

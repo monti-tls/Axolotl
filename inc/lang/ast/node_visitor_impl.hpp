@@ -14,24 +14,27 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_FORWARD_H__
-#define __AXOLOTL_LANG_FORWARD_H__
+#ifndef __AXOLOTL_LANG_AST_NODE_VISITOR_IMPL_H__
+#define __AXOLOTL_LANG_AST_NODE_VISITOR_IMPL_H__
 
-#include "lang/nfa/forward.hpp"
-#include "lang/ast/forward.hpp"
-#include "lang/pass/forward.hpp"
+#include "lang/ast/node_visitor.hpp"
+#include "lang/ast/node.hpp"
+
+#include <utility>
 
 namespace lang
 {
-    struct RegularDefinition;
-    class RegularDefinitionCompiler;
-    class Lexer;
-    class Token;
-    class ParserBase;
-    class Parser;
-    class Symbol;
-    class Symtab;
-    class Compiler;
+    namespace ast
+    {
+        template <typename Visitor, typename... Args>
+        void NodeVisitor::apply(Node* node, Args&&... args)
+        {
+            Visitor* visitor = new Visitor(std::forward<Args>(args)...);
+            visitor->init();
+            node->accept(visitor);
+            delete visitor;
+        }
+    }
 }
 
-#endif // __AXOLOTL_LANG_FORWARD_H__
+#endif // __AXOLOTL_LANG_AST_NODE_VISITOR_IMPL_H__

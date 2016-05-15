@@ -17,45 +17,74 @@
 #ifndef __AXOLOTL_LANG_PARSER_H__
 #define __AXOLOTL_LANG_PARSER_H__
 
-#include "lang/lexer.hpp"
+#include "lang/forward.hpp"
+#include "lang/parser_base.hpp"
 
 #include <string>
 #include <iostream>
 #include <map>
+#include <stack>
 
 namespace lang
 {
-    class Parser
+    #define DEF_TOKEN(name) TOK_ ## name,
+    #define DEF_ALIAS(name, alias) TOK_ ## name = TOK_ ## alias,
+    enum
+    {
+        #include "lang/tokens.def"
+    };
+    #undef DEF_ALIAS
+    #undef DEF_TOKEN
+
+    class Parser : public ParserBase
     {
     public:
-        Parser(std::istream& in, std::size_t lookhead = 1, std::size_t lex_lookahead = 128);
-        virtual ~Parser();
+        Parser(std::istream& in);
+        ~Parser();
 
-        void rewind();
-
-        std::string message(Token const& token, std::string const& msg);
-        void error(Token const& token, std::string const& msg);
-        void warning(Token const& token, std::string const& msg);
-
-    protected:
-        virtual void M_setupLexer() = 0;
-        virtual void M_setupTokens() = 0;
-
-        void M_build();
-        void M_define(std::string const& name, std::string const& definition, core::Object const& build_token);
-        void M_setTokenName(int token, std::string const& name);
-        std::string M_tokenName(int token);
-        void M_initLookahead();
-        Token M_get();
-        Token M_eat(int which);
-        Token const& M_peek(std::size_t depth = 0);
-        void M_unexpected(Token const& token);
+        ast::Node* parse();
 
     private:
-        Lexer m_lexer;
-        std::map<int, std::string> m_token_names;
-        std::size_t m_lookahead_depth;
-        std::vector<Token> m_lookahead;
+        ast::Node* M_name();
+
+        ast::Node* M_expr_0();
+        ast::Node* M_expr_1();
+        ast::Node* M_expr_2();
+        ast::Node* M_expr_3();
+        ast::Node* M_expr_4();
+        ast::Node* M_expr_5();
+        ast::Node* M_expr_6();
+        ast::Node* M_expr_7();
+        ast::Node* M_expr_8();
+        ast::Node* M_expr_9();
+        ast::Node* M_expr();
+        ast::Node* M_expr_list();
+
+        ast::Node* M_if_stmt();
+        ast::Node* M_while_stmt();
+        ast::Node* M_return_stmt();
+        ast::Node* M_block_stmt();
+
+        void M_param_list_decl();
+        ast::Node* M_fun_decl();
+
+        ast::Node* M_stmt();
+        ast::Node* M_prog();
+
+    private:
+        virtual void M_setupLexer();
+        virtual void M_setupTokens();
+        ast::Node* M_check(ast::Node* node);
+        Symtab* M_check(Symtab* symtab);
+        
+        std::string M_operatorMethodName(Token const& token);
+
+        Symtab* M_scope() const;
+        Symtab* M_pushScope();
+        Symtab* M_popScope();
+
+    private:
+        std::stack<Symtab*> m_scope;
     };
 }
 

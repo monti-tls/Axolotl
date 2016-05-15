@@ -197,7 +197,7 @@ int main()
     std::istringstream ss;
     ss.str(str);
 
-    XltlCompiler* compiler = new XltlCompiler(ss);
+    Compiler* compiler = new Compiler(ss);
 
     compiler->compile();
 
