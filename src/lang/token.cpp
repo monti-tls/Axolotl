@@ -29,3 +29,15 @@ int Token::which() const
 
 Object const& Token::what() const
 { return m_what; }
+
+Token::Where const& Token::where() const
+{ return m_where; }
+
+void Token::setWhere(Token::Where const& where)
+{ m_where = where; }
+
+std::string const& Token::lexeme() const
+{ return m_lexeme; }
+
+void Token::setLexeme(std::string const& lexeme)
+{ m_lexeme = lexeme; }

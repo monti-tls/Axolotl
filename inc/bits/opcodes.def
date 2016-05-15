@@ -24,7 +24,7 @@ OPCODE(LOAD_GLOBAL,   1) //! push(globals(_1))
 OPCODE(STOR_GLOBAL,   1) //! globals(_1) = pop()
 OPCODE(INVOKE,        1) //! pop().invoke(_1 arguments)
 OPCODE(METHOD,        2) //! self = pop(); self.invoke(self, _1 arguments)
-OPCODE(LEAVE,         0)
+OPCODE(LEAVE,         0) //! returns no value
 OPCODE(RETURN,        0) //! returns pop()
 OPCODE(JMP,           1) //! pc = _1
 OPCODE(JMPR,          1) //! pc += _1

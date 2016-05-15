@@ -30,21 +30,30 @@
 
 namespace core
 {
+    //! This class encapsulates an object which can be called.
+    //! It is used internally by the core::Object class.
     class Callable
     {
     public:
+        //! Nature of the callable object
         enum class Kind
         {
+            //! The object is a native function (i.e, exposed from C++)
             Native,
+            //! The object is a function defined by a script
             Scripted
         };
 
+        //! Type of the internal data for Native type
         typedef std::shared_ptr<AbstractCallback> NativeMetaType;
+        //! Type of the internal data for the Scripted type
         typedef vm::Function ScriptedMetaType;
 
     public:
+        //! Build a scripted callable object
         Callable(ScriptedMetaType const& scripted);
 
+        //! Build a native callable object from a std::function
         template <typename TRet, typename... TArgs>
         Callable(std::function<TRet(TArgs...)> const& fun)
             : m_kind(Kind::Native)
@@ -53,10 +62,14 @@ namespace core
 
         ~Callable();
 
+        //! Get the kind of this callable
         Kind kind() const;
+        //! Get the internal data of this callabel
         Some const& meta() const;
 
+        //! Invoke this callable using the provided argument vector
         Object invoke(std::vector<Object> const& args) const;
+        //! Get the signature of this callable
         Signature signature() const;
 
     private:

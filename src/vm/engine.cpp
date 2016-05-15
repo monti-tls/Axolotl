@@ -71,7 +71,7 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
 void Engine::M_initOpcodes()
 {
     #define OPCODE(name, nargs) m_opcodes_nargs[name] = nargs;
-    #include "bits/opcodes.inc"
+    #include "bits/opcodes.def"
     #undef OPCODE
 
     int nargs_max = 0;
@@ -330,8 +330,7 @@ bool Engine::M_execute()
 
             bool dummy = M_leave();
 
-            if (m_ir == RETURN)
-                M_push(ret);
+            M_push(ret);
             
             if (dummy)
                 return false;

@@ -25,20 +25,23 @@
 
 namespace lang
 {
+    //! A regular definition entry (possibly referring
+    //!   to other regular definitions)
     struct RegularDefinition
     {
+        //! String representation of this regular definition
         std::string as_string;
-
+        //! Compiled NFA fragment associated with this definition
         nfa::Fragment fragment;
-
         //! Start state of the definition's NFA
         //! Non-null only for top-level definitions
         nfa::State* start;
-
         //! Priority of this definiton, the lowest this value
         //!   is, more this definition is strong
         int priority;
-
+        //! Functor object used to build the associated token
+        //!   from the extracted lexeme.
+        //! nil for non top-level definitions
         core::Object build_token;
     };
 }

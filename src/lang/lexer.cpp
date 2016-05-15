@@ -17,6 +17,7 @@
 #include "lang/lexer.hpp"
 #include "lang/regular_definition_compiler.hpp"
 #include "core/core.hpp"
+#include "util/ios_filename.hpp"
 
 #include <sstream>
 #include <stack>
@@ -51,12 +52,15 @@ void Lexer::rewind()
     m_eof = false;
     M_initPointers();
     M_loadBuffer(m_right);
+
+    m_where = Token::Where();
+    m_where.filename = util::ios_filename(m_in);
 }
 
-void Lexer::addDefinition(std::string const& name, std::string const& definition, Object const& build_token)
+void Lexer::define(std::string const& name, std::string const& definition, Object const& build_token)
 {
     if (m_defs.find(name) != m_defs.end())
-        throw std::runtime_error("lang::Lexer::addDefinition: redefining `" + name + "'");
+        throw std::runtime_error("lang::Lexer::define: redefining `" + name + "'");
 
     std::istringstream ss;
     ss.str(definition);
@@ -112,14 +116,13 @@ void Lexer::build()
     m_nfa_start = frag.start();
 }
 
-Token Lexer::M_getToken()
+Token Lexer::getToken()
 {
     if (!m_nfa_start)
         throw std::runtime_error("lang::Lexer::M_getToken: lang::Lexer::build() must be called before using the parser");
 
-    // If the EOF bit is set, don't do anything
-    if (m_eof)
-        return Token(Token::Eof);
+    // Save our current location within the stream
+    Token::Where where = m_where;
 
     //! This structure holds a match state
     struct Match
@@ -128,10 +131,15 @@ Token Lexer::M_getToken()
         char* forward;
         std::size_t size;
         int priority;
+        Token::Where where;
     };
 
     for (;;)
     {
+        // If the EOF bit is set, don't do anything
+        if (m_eof)
+            return M_setupToken(Token(Token::Eof));
+
         // We will put eventual matches here
         std::vector<Match> match_list;
         // And here are our state lists
@@ -149,7 +157,7 @@ Token Lexer::M_getToken()
             for (auto state : state_list)
             {
                 // If we encounter a match state, put it into our list
-                //   and save information about where it happenned, when and
+                //   and save information about where it happenned and
                 //   to which definition it is related
                 if (state->what == State::Match)
                 {
@@ -158,6 +166,7 @@ Token Lexer::M_getToken()
                     match.forward = m_forward;
                     match.size = size;
                     match.priority = m_defs[match.state->defname].priority;
+                    match.where = where;
 
                     match_list.push_back(match);
                 }
@@ -188,18 +197,29 @@ Token Lexer::M_getToken()
             if (!next_state_list.size() || m_eof)
                 break;
 
+            // Update the current location
+            if (c == '\n')
+            {
+                ++where.line;
+                where.col = 0;
+            }
+            ++where.col;
+
             // Otherwise, swap and clear
             state_list = next_state_list;
             next_state_list.clear();
         }
 
+        // If no match, well, return an invalid token
         if (!match_list.size())
         {
             M_resetBegin();
-            return Token(Token::Invalid);
+            Token token(Token::Invalid);
+            token.setLexeme(M_getLexeme());
+            return M_setupToken(token);
         }
 
-        // Search for the deepest match
+        // Search for the longer match length
         std::size_t max_size = 0;
         for (auto m : match_list)
         {
@@ -208,7 +228,7 @@ Token Lexer::M_getToken()
         }
 
         // Search for the highest priority (lowest number)
-        //   between the deppest matches
+        //   between the longer matches
         int max_priority = -1;
         for (auto m : match_list)
         {
@@ -229,14 +249,22 @@ Token Lexer::M_getToken()
                 m_forward = m.forward;
                 M_retractForward();
 
-                // Setup the token we return
+                // Get the lexeme string
+                std::string lexeme = M_getLexeme();
+
                 Object obj = m_defs[m.state->defname].build_token;
                 if (obj.isInvokable())
-                    obj = obj(M_getLexeme());
+                    obj = obj(lexeme);
                 
                 if (!obj.meta().is<Token>())
                     throw std::runtime_error("lang::Lexer::M_getToken: invalid token object");
-                Token tok = obj.unwrap<Token>();
+
+                // Setup the token
+                Token tok = M_setupToken(obj.unwrap<Token>());
+                tok.setLexeme(lexeme);
+
+                // Retain the location information
+                m_where = m.where;
 
                 // Reset our begin pointer so that it points
                 //   to the beginning of the next lexeme
@@ -249,6 +277,32 @@ Token Lexer::M_getToken()
     }
 
     throw std::runtime_error("lang::Lexer::M_getToken: internal error (priority mess)");
+}
+
+bool Lexer::eof() const
+{ return m_eof; }
+
+std::string Lexer::snippet(Token const& token, std::size_t& pos)
+{
+    // Save the input stream's state
+    std::size_t saved_pos = m_in.tellg();
+    std::istream::iostate saved_state = m_in.rdstate();
+    m_in.clear();
+    m_in.seekg(0, std::ios::beg);
+
+    // Read the whole line
+    std::string line;
+    for (int i = 0; i < (int) token.where().line; ++i)
+        std::getline(m_in, line);
+
+    // Compute the position of the token within the line
+    pos = token.where().col;
+
+    // Restore the input stream's state
+    m_in.seekg(saved_pos, std::ios::beg);
+    m_in.setstate(saved_state);
+
+    return line;
 }
 
 void Lexer::M_allocateBuffers()
@@ -269,6 +323,7 @@ void Lexer::M_loadBuffer(std::size_t id)
         throw std::runtime_error("lang::Lexer::M_loadBuffer: invalid buffer index");
 
     m_in.read(m_buffers[id], m_buffer_size);
+
     if (!m_in)
         m_buffers[id][m_in.gcount()] = 0;
     else
@@ -457,4 +512,11 @@ void Lexer::M_releaseNfa()
 
         delete s;
     }
+}
+
+Token Lexer::M_setupToken(Token const& token)
+{
+    Token copy(token);
+    copy.setWhere(m_where);
+    return copy;
 }

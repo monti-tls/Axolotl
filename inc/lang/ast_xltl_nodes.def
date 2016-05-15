@@ -1,0 +1,50 @@
+DEF_FLAG(None,    0x00) // No flags
+DEF_FLAG(IR_Call, 0x01) // This node represents a function call (used in IR)
+DEF_FLAG(IR_Load, 0x02) // This node represents a load operation (used in IR)
+DEF_FLAG(Block,   0x04) // The node is a block
+DEF_FLAG(HasCond, 0x08) // The first sibling is a condition (only if Block is set)
+
+// These nodes are produced right away by the parser
+
+DEF_NODE(Name,          FLAGS(None);    ATTR(std::string,  value))
+DEF_NODE(Const,         FLAGS(None);    ATTR(core::Object, value))
+DEF_NODE(Invoke,        FLAGS(None))
+DEF_NODE(Member,        FLAGS(None);    ATTR(std::string,  name))
+DEF_NODE(Method,        FLAGS(None);    ATTR(std::string,  name))
+DEF_NODE(Assign,        FLAGS(None))
+DEF_NODE(If,            FLAGS(Block |
+                              HasCond))
+DEF_NODE(Elif,          FLAGS(Block |
+                              HasCond))
+DEF_NODE(Else,          FLAGS(Block))
+DEF_NODE(While,         FLAGS(Block))
+DEF_NODE(Return,        FLAGS(None))
+DEF_NODE(FunDecl,       FLAGS(Block);    ATTR(std::string,  name))
+DEF_NODE(Prog,          FLAGS(Block))
+
+// These nodes are produced later when processing the AST
+
+DEF_NODE(GlobalRef,     FLAGS(None);    ATTR(std::string,  name))
+DEF_NODE(LocalRef,      FLAGS(None);    ATTR(int,          index))
+DEF_NODE(ConstRef,      FLAGS(None);    ATTR(int,          index))
+
+// Nodes for low-level intermediate representation (IR)
+
+DEF_NODE(IR_Prog,       FLAGS(None))
+DEF_NODE(IR_FunDecl,    FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_LoadConst,  FLAGS(IR_Load); ATTR(int,         index))
+DEF_NODE(IR_LoadGlobal, FLAGS(IR_Load); ATTR(std::string, name))
+DEF_NODE(IR_StorGlobal, FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_LoadLocal,  FLAGS(IR_Load); ATTR(int,         index))
+DEF_NODE(IR_StorLocal,  FLAGS(None);    ATTR(int,         index))
+DEF_NODE(IR_LoadMember, FLAGS(IR_Load); ATTR(std::string, name))
+DEF_NODE(IR_StorMember, FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_Label,      FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_Goto,       FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_GotoIf,     FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_Invoke,     FLAGS(IR_Call); ATTR(int,         argc))
+DEF_NODE(IR_Method,     FLAGS(IR_Call); ATTR(std::string, name);
+                                        ATTR(int, argc))
+DEF_NODE(IR_Return,     FLAGS(None))
+DEF_NODE(IR_Leave,      FLAGS(None))
+DEF_NODE(IR_Pop,        FLAGS(None))

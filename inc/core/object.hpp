@@ -68,6 +68,7 @@ namespace core
         Object invokeMember(std::string const& name, std::vector<Object> const& args) const;
         Object invokePolymorphic(std::string const& name, std::vector<Object> const& args) const;
         Object invoke(std::vector<Object> const& args) const;
+        Object method(std::string const& name, std::vector<Object> const& args) const;
 
         template <typename T>
         T& unwrap();
@@ -87,6 +88,12 @@ namespace core
         Object operator*(Object const& other) const;
         Object operator/(Object const& other) const;
         Object operator%(Object const& other) const;
+        Object operator<(Object const& other) const;
+        Object operator<=(Object const& other) const;
+        Object operator>(Object const& other) const;
+        Object operator>=(Object const& other) const;
+
+        operator bool() const;
 
         static Object const& nil();
         static void setupBuiltinMembers(Object& obj);

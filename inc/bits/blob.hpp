@@ -44,28 +44,41 @@ namespace bits
     //! Holds possible values for blob_shdr->sh_type
     enum blob_shtype
     {
+        //! Null section
         BLOB_ST_NULL = 0x00,
+        //! String section (nul-separated)
         BLOB_ST_STRINGS,
+        //! Code section
         BLOB_ST_TEXT,
+        //! Symbol section
         BLOB_ST_SYMBOLS,
+        //! Type specification section
         BLOB_ST_TSPECS,
+        //! Symbol signatures section
         BLOB_ST_SIGNATURES,
+        //! Constant data section
         BLOB_ST_CONSTANTS
     };
 
     //! Holds possible values for blob_symbol->s_type
     enum blob_symtype
     {
+        //! Null symbol type
         BLOB_SYMT_NULL = 0x00,
+        //! Function
         BLOB_SYMT_FUNCTION,
+        //! Class method
         BLOB_SYMT_METHOD
     };
 
     //! Holds possible values for blob_symbol->s_bind
     enum blob_symbind
     {
+        //! No binding
         BLOB_SYMB_NULL = 0x00,
+        //! Symbol is locally bound
         BLOB_SYMB_LOCAL = 0x01,
+        //! Symbol is globally bound
         BLOB_SYMB_GLOBAL = 0x02
     };
 
@@ -221,12 +234,38 @@ namespace bits
         //! \return true if success, false otherwise
         bool addTypeSpecSymbol(blob_idx tsidx, blob_idx symidx);
 
+        //! Access the symbol signature associated with index `sigidx'
+        //! \param sigidx The index of the signature entry to access
+        //! \param sigoff Optional output parameter for the offset of the entry
+        //!               within the symbol signatures section (as entries are of variable size)
+        //! \return The signature entry if success, 0 otherwise
         blob_signature* signature(blob_idx sigidx, blob_off* sigoff = nullptr) const;
+
+        //! Get the number of symbol signature entries in the corresponding section
+        //! \return The number of signature entries
         std::size_t signatureCount() const;
+
+        //! Add a new signature entry in the symbol signature section
+        //! \param sigidx Output parameter for the enw entry's index
+        //! \return true if success, false otherwise
         bool addSignature(blob_idx& sigidx);
+
+        //! Add an argument entry to a symbol signature entry
+        //! \param sigidx The index of the symbol signature to modify
+        //! \param type The name of the type of the new argument to add
+        //! \return true if success, false otherwise
         bool addSignatureArgument(blob_idx sigidx, std::string const& type);
 
+        //! Get a constant entry from the constant data section
+        //! \param ctsidx The index of the constant entry to access
+        //! \return The constant entry if success, 0 otherwise
         blob_constant* constant(blob_idx cstidx) const;
+
+        //! Add a new constant entry in the constant data section
+        //! \param type Name of the type of the new constant entry
+        //! \param serialized The constant data to insert in serialized form
+        //! \param cstidx Optional output parameter for the index of the added constant entry
+        //! \return The added constant entry if success, 0 otherwise
         blob_constant* addConstant(std::string const& type, std::string const& serialized, blob_idx* cstidx = nullptr);
 
         //! Sets the TEXT section contents wich the given buffer
@@ -238,6 +277,8 @@ namespace bits
         //! \return A buffer pointing to the TEXT section's contents if success, 0 otherwise
         std::shared_ptr<Buffer> text() const;
 
+        //! Loop over every string in the string table and execute `action'
+        //! \param action The action to execute on every string
         void foreachString(std::function<void(blob_idx, std::string const&)> const& action) const;
 
         //! Loop over every symbol entry and execute `action'
@@ -255,9 +296,17 @@ namespace bits
         //! \return true if success, false otherwise
         bool foreachTypeSpecSymbol(blob_idx tsidx, std::function<void(blob_idx)> const& action) const;
 
+        //! Loop over every symbol signature in the symbol signatures section
+        //! \param action The action to execute on every symbol signature
         void foreachSignature(std::function<void(blob_idx, blob_signature*)> const& action) const;
+
+        //! Loop over every argument in a given symbol signature
+        //! \param action The action to execute on every argument of the given signature
+        //! \return true if success, false otherwise
         bool foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_off)> const& action) const;
 
+        //! Loop over each constant entry in the constant data table
+        //! \param action The action to execute on every constant entry
         void foreachConstant(std::function<void(blob_idx, blob_constant*)> const& action) const;
 
      private:

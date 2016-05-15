@@ -23,31 +23,47 @@ namespace lang
 {
     namespace nfa
     {
+        //! A character class as a linked list of character ranges
         struct CharClass
         {
-            int low, high;
+            //! The included lower range bound
+            int low;
+            //! The included higher range bound
+            int high;
+            //! Pointer to the eventual next range in the class
             CharClass* next = nullptr;
         };
 
+        //! A single NFA state
         struct State
         {
+            //! Kind of the NFA state
             enum Kind
             {
+                //! The state matches any character
                 Wildcard,
+                //! The state matches a character class
                 Range,
+                //! The state is a 'split' state and is followed
+                //!   unconditionnally
                 Split,
+                //! The state is a match state
                 Match
-            };
+            } what;
 
-            int what;
+            //! The matched character class (may consist of a single
+            //!   character range if a single character is matched)
             CharClass* char_class = nullptr;
+            //! Whether or not the character class is inverted
             bool invert = false;
-
+            //! Outgoing transitions (one or both may be 0)
             State* out[2] = { nullptr, nullptr };
         };
 
+        //! Specialized class for match states
         struct MatchState : public State
         {
+            //! The regular definition name associated with this match state
             std::string defname;
         };
     }

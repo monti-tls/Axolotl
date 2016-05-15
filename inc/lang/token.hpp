@@ -34,14 +34,30 @@ namespace lang
         };
 
     public:
-        Token(int which, core::Object const& what = core::Object::nil());
+        struct Where
+        {
+            std::size_t line = 1UL;
+            std::size_t col = 0UL;
+            std::string filename = "";
+        };
+
+    public:
+        Token(int which = Invalid, core::Object const& what = core::Object::nil());
 
         int which() const;
         core::Object const& what() const;
 
+        Where const& where() const;
+        void setWhere(Where const& where);
+
+        std::string const& lexeme() const;
+        void setLexeme(std::string const& lexeme);
+
     private:
         int m_which;
         core::Object m_what;
+        Where m_where;
+        std::string m_lexeme;
     };
 }
 

@@ -107,7 +107,7 @@ Object const& Object::findPolymorphic(std::string const& id, std::vector<Object>
             return obj;
     }
 
-    throw std::runtime_error("core::Object::findPolymorphic: no polymorphic member matches the current signature");
+    return nil();
 }
 
 Object& Object::member(std::string const& id)
@@ -139,7 +139,12 @@ Object Object::invokeMember(std::string const& name, std::vector<Object> const& 
 }
 
 Object Object::invokePolymorphic(std::string const& name, std::vector<Object> const& args) const
-{ return findPolymorphic(name, args).invoke(args); }
+{
+    Object morph = findPolymorphic(name, args);
+    if (morph.isNil())
+        throw std::runtime_error("core::Object::findPolymorphic: no polymorphic member matches the current signature");
+    return morph.invoke(args);
+}
 
 Object Object::invoke(std::vector<Object> const& args) const
 {
@@ -153,16 +158,43 @@ Object Object::invoke(std::vector<Object> const& args) const
     return invokePolymorphic(lang::std_call, args);
 }
 
+Object Object::method(std::string const& name, std::vector<Object> const& args) const
+{
+    std::vector<Object> new_args = { *this };
+    std::copy(args.begin(), args.end(), std::back_inserter(new_args));
+
+    Object morph = findPolymorphic(name, new_args);
+    if (morph.isNil())
+        throw std::runtime_error("core::Object:method: no polymorphic member matches the current signature");
+
+    return morph.invoke(new_args);
+}
+
 Object Object::operator==(Object const& other) const
 {
-    if (&other == &m_nil && classname() == lang::std_nil_classname)
+    if (other.isNil() && isNil())
         return true;
+
+    if (other.isNil() || isNil())
+        return false;
 
     return invokePolymorphic(lang::std_equals, { *this, other });
 }
 
 Object Object::operator!=(Object const& other) const
-{ return !operator==(other); }
+{
+    if (other.isNil() && isNil())
+        return false;
+
+    if (other.isNil() || isNil())
+        return true;
+
+    Object morph = findPolymorphic(lang::std_nequals, { *this, other });
+    if (morph.isNil())
+        return !operator==(other);
+
+    return morph.invoke({ *this, other });
+}
 
 Object Object::operator&&(Object const& other) const
 { return invokePolymorphic(lang::std_and, { *this, other}); }
@@ -187,6 +219,39 @@ Object Object::operator/(Object const& other) const
 
 Object Object::operator%(Object const& other) const
 { return invokePolymorphic(lang::std_mod, { *this, other}); }
+
+Object Object::operator<(Object const& other) const
+{ return invokePolymorphic(lang::std_lt, { *this, other }); }
+
+Object Object::operator<=(Object const& other) const
+{
+    Object morph = findPolymorphic(lang::std_lte, { *this, other });
+    if (morph.isNil())
+        return operator<(other) || operator==(other);
+
+    return morph.invoke({ *this, other });
+}
+
+Object Object::operator>(Object const& other) const
+{
+    Object morph = findPolymorphic(lang::std_gte, { *this, other });
+    if (morph.isNil())
+        return !operator<(other);
+
+    return morph.invoke({ *this, other });
+}
+
+Object Object::operator>=(Object const& other) const
+{
+    Object morph = findPolymorphic(lang::std_gte, { *this, other });
+    if (morph.isNil())
+        return operator>(other) || operator==(other);
+
+    return morph.invoke({ *this, other });
+}
+
+Object::operator bool() const
+{ return unwrap<bool>(); }
 
 Object const& Object::nil()
 {

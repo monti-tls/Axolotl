@@ -24,7 +24,7 @@ namespace bits
     enum Opcode
     {
         #define OPCODE(name, nargs) name,
-        #include "bits/opcodes.inc"
+        #include "bits/opcodes.def"
         #undef OPCODE
     };
 

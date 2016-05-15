@@ -46,7 +46,7 @@ namespace core
             throw std::runtime_error("wrong number of arguments");
         
         std::vector<Object>& writeable = const_cast<std::vector<Object>&>(args);
-        std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
+        std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*) nullptr...);
         applyTuple(this->m_fun, tp);
 
         return Object::nil();

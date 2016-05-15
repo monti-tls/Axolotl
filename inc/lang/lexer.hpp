@@ -35,9 +35,11 @@ namespace lang
         ~Lexer();
 
         void rewind();
-        void addDefinition(std::string const& name, std::string const& definition, core::Object const& build_token = core::Object::nil());
+        void define(std::string const& name, std::string const& definition, core::Object const& build_token = core::Object::nil());
         void build();
-        Token M_getToken();
+        Token getToken();
+        bool eof() const;
+        std::string snippet(Token const& token, std::size_t& pos);
 
     private:
         void M_allocateBuffers();
@@ -50,6 +52,7 @@ namespace lang
         std::string M_getLexeme();
         void M_addStateInList(nfa::State* state, std::vector<nfa::State*>& state_list);
         void M_releaseNfa();
+        Token M_setupToken(Token const& token);
 
     private:
         std::istream& m_in;
@@ -58,6 +61,8 @@ namespace lang
         std::size_t m_buffer_size;
         std::size_t m_left;
         std::size_t m_right;
+
+        Token::Where m_where;
 
         char* m_forward;
         char* m_begin;

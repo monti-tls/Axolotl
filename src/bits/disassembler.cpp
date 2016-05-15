@@ -130,7 +130,7 @@ void Disassembler::dumpText()
         if (!opcodes_nargs_inited)
         {   
             #define OPCODE(name, nargs) opcodes_nargs[name] = nargs;
-            #include "bits/opcodes.inc"
+            #include "bits/opcodes.def"
             #undef OPCODE
 
             opcodes_nargs_inited = true;

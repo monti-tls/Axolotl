@@ -21,5 +21,6 @@
 #include "core/callback.hpp"
 #include "core/object.hpp"
 #include "core/object_factory.hpp"
+
 #include "core/callback_impl.hpp"
 #include "core/object_impl.hpp"

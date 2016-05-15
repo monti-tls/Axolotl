@@ -29,7 +29,7 @@ namespace bits
         static Pair names[] =
         {
             #define OPCODE(name, nargs) { name, #name },
-            #include "bits/opcodes.inc"
+            #include "bits/opcodes.def"
             #undef OPCODE
         };
 

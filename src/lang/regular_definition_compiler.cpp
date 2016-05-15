@@ -278,9 +278,19 @@ char RegularDefinitionCompiler::M_escapeSequence()
 
         case '^':
             c = '^';
+            break;
 
         case '-':
             c = '-';
+            break;
+
+        case 'n':
+            c = '\n';
+            break;
+
+        case 't':
+            c = '\t';
+            break;
 
         default:
             M_lexerError("undefined escape sequence");

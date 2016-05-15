@@ -23,6 +23,8 @@ namespace lang
     constexpr auto std_callable_classname = "@callable";
     constexpr auto std_nil_classname = "@nil";
 
+    constexpr auto std_const_dict  = "__consts__";
+
     constexpr auto std_classname   = "__classname__";
     constexpr auto std_del         = "__del__";
     constexpr auto std_call        = "__call__";
@@ -31,6 +33,7 @@ namespace lang
 
     constexpr auto std_add         = "__add__";
     constexpr auto std_sub         = "__sub__";
+    constexpr auto std_neg         = "__neg__";
     constexpr auto std_mul         = "__mul__";
     constexpr auto std_div         = "__div__";
     constexpr auto std_mod         = "__mod__";
@@ -38,6 +41,11 @@ namespace lang
     constexpr auto std_or          = "__or__";
     constexpr auto std_not         = "__not__";
     constexpr auto std_equals      = "__equals__";
+    constexpr auto std_nequals     = "__nequals__";
+    constexpr auto std_lt          = "__lt__";
+    constexpr auto std_lte         = "__lte__";
+    constexpr auto std_gt          = "__gt__";
+    constexpr auto std_gte         = "__gte__";
 }
 
 #endif // __AXOLOTL_LANG_STD_NAMES_H__

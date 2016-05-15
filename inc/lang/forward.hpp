@@ -29,6 +29,41 @@ namespace lang
     struct RegularDefinition;
     class RegularDefinitionCompiler;
     class Lexer;
+    class Token;
+    class Parser;
+    class XltlParser;
+
+    namespace ast
+    {
+        class XltlNode;
+        class AbstractXltlNodeVisitor;
+        class XltlNodeVisitor;
+        class XltlNodeGenerator;
+
+        #define CAT(a, b, c) a ## b ## c
+        #define DEF_FLAG(name, value)
+        #define DEF_NODE(name, ...) \
+            class CAT(Xltl, name, Node);
+        #include "lang/ast_xltl_nodes.def"
+        #undef DEF_NODE
+        #undef DEF_FLAG
+        #undef CAT
+    }
+
+    class XltlSymbol;
+    class XltlSymtab;
+    class XltlCompiler;
+
+    namespace pass
+    {
+        class ExprResultCheck;
+        class BindNames;
+        class ResolveNames;
+        class ResolveConsts;
+        class GenerateRValue;
+        class GenerateLValue;
+        class GenerateIR;
+    }
 }
 
 #endif // __AXOLOTL_LANG_FORWARD_H__

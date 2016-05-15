@@ -1,0 +1,259 @@
+///////////////////////////////////////////////////////////
+// Tokens                                                //
+//                                                       //
+// Defines :                                             //
+//   All UPPERCASE names.                                //
+//   When several names are in the left-hand size of a   //
+//     regular definition, the lexer uses the available  //
+//     contextual information to discriminate.           //
+///////////////////////////////////////////////////////////
+
+// Whitespace tokens and comments
+WS := '[ \t\n\r]'
+    | ("//" '[^\n]'*)
+    | ("/*" ('[^*]' | ('*'+ '[^*/]'))* "*/");
+
+// Punctuation tokens
+LPAR         := '(';
+RPAR         := ')';
+LCURL        := '{';
+RCURL        := '}';
+DOT          := '.';
+COMMA        := ',';
+SEMICOLON    := ';';
+COLON        := ':';
+YIELDS       := "->";
+YIELDS_MAYBE := "->?";
+
+// Expression tokens
+ARITH_ADD := '+';
+ARITH_SUB := '-';
+WILDCARD,
+ARITH_MUL := '*';
+ARITH_DIV := '/';
+ARITH_MOD := '%';
+LOGIC_NOT := '!';
+LOGIC_AND := "&&";
+LOGIC_OR  := "||";
+REL_LT    := '<';
+REL_LTE   := "<=";
+REL_GT    := '>';
+REL_GTE   := ">=";
+REL_EQ    := "==";
+REL_NEQ   := "!=";
+ASSIGN    := '=';
+
+// Keywords
+KW_IMPORT := "import";
+KW_IF     := "if";
+KW_ELIF   := "elif";
+KW_ELSE   := "else";
+KW_WHILE  := "while";
+KW_FUN    := "fun";
+KW_RETURN := "return";
+KW_CLASS  := "class";
+
+// Identifier tokens (context-dependent)
+IDENTIFIER,
+PACKAGE     := '[_a-zA-Z]' '[_a-zA-Z0-9]'*;
+
+// Literals
+LIT_CHAR := '\'' '\\'? . '\'';
+LIT_STRING := '"' ('[^"\\]' | ('\\' .))* '"';
+LIT_INTEGER := ('-'? '[0-9]'+) | ((\"0x\" | \"0X\") '[0-9a-fA-F]'+) | ('-'? '0' '[0-7]'+) | ((\"0b\" | \"0B\") '[0-1]'+)
+
+///////////////////////////////////////////////////////////
+// Expression grammar                                    //
+//                                                       //
+// Defines :                                             //
+//   expr      : top-level expression rule               //
+//   expr_{0-9}: expressions by precedency levels        //
+//   expr_*    : specialized expressions                 //
+///////////////////////////////////////////////////////////
+
+// Naming compounds
+name := (PACKAGE DOT)? IDENTIFIER;
+
+// Precedency level: 0
+// Associativity   : N/A
+// What            : Expression atoms
+expr_grp := LPAR expr RPAR
+expr_lit := LIT_CHAR
+          | LIT_STRING
+          ;
+
+expr_0 := expr_grp
+        | expr_lit
+        | name
+        ;
+
+// Precedency level: 1
+// Associativity   : L-R
+// What            : Function call, member access, method access
+expr_call := expr_0 LPAR expr_list? RPAR ;
+expr_memb := expr_0 (DOT IDENTIFIER)+ ;
+expr_meth := expr_0 (DOT IDENTIFIER LPAR expr_list? RPAR)+ ;
+
+expr_1 := expr_0
+        | expr_call
+        | expr_memb
+        | expr_meth
+        ;
+
+// Precedency level: 2
+// Associativity   : R-L
+// What            : Unary plus, minus and boolean negation
+expr_una := (ARITH_PLUS | ARITH_MINUS)+ expr_1
+expr_not := LOGIC_NOT+ expr_1
+
+expr_2 := expr_1
+        | expr_una
+        | expr_not
+        ;
+
+// Precedency level: 3
+// Associativity   : L-R
+// What            : Binary multiplication, division and modulo
+expr_mul := expr_2 (ARITH_MUL expr_2)+
+expr_div := expr_2 (ARITH_DIV expr_2)+
+expr_mod := expr_2 (ARITH_MOD expr_2)+
+
+expr_3 := expr_2
+        | expr_mul
+        | expr_div
+        | expr_mod
+        ;
+
+// Precedency level: 4
+// Associativity   : L-R
+// What            : Binary addition, subtraction
+expr_add := expr_3 (ARITH_ADD expr_3)+
+expr_sub := expr_3 (ARITH_SUB expr_3)+
+
+expr_4 := expr_3
+        | expr_add
+        | expr_sub
+        ;
+
+// Precedency level: 5
+// Associativity   : L-R
+// What            : Relational comparison operators
+expr_lt  := expr_4 (REL_LT expr_4)+
+expr_lte := expr_4 (REL_LTE expr_4)+
+expr_gt  := expr_4 (REL_GT expr_4)+
+expr_gte := expr_4 (REL_GTE expr_4)+
+
+expr_5 := expr_4
+        | expr_lt
+        | expr_lte
+        | expr_gt
+        | expr_gte
+        ;
+
+// Precedency level: 6
+// Associativity   : L-R
+// What            : Relational equality operators
+expr_eq  := expr_5 (REL_EQ expr_5)+
+expr_neq := expr_5 (REL_NEQ expr_5)+
+
+expr_6 := expr_5
+        | expr_eq
+        | expr_neq
+        ;
+
+// Precedency level: 7
+// Associativity   : L-R
+// What            : Logical and
+expr_and := expr_6 (LOGIC_AND expr_6)+
+
+expr_7 := expr_6
+        | expr_and;
+
+// Precedency level: 8
+// Associativity   : L-R
+// What            : Logical or
+expr_or := expr_7 (LOGIC_OR expr_7)+
+
+expr_8 := expr_7
+        | expr_or;
+
+// Precedency level: 9
+// Associativity   : R-L
+// What            : Assignment
+expr_asg := expr_8 ASSIGN expr
+
+expr_9 := expr_8
+        | expr_asg;
+
+// Top-level expression rule
+expr := expr_9;
+
+// Expression compounds
+expr_list := expr (COMMA expr_list)?;
+
+///////////////////////////////////////////////////////////
+// Statements grammar                                    //
+//                                                       //
+// Defines :                                             //
+//   stmt      : top-level statement rule                //
+//   *_stmt    : specialized statement rules             //
+///////////////////////////////////////////////////////////
+
+// Flow-control statements
+if_stmt := KW_IF LPAR expr RPAR stmt
+           (KW_ELIF LPAR expr RPAR stmt)*
+           (KW_ELSE stmt)?
+         ;
+
+while_stmt := KW_WHILE LPAR expr RPAR stmt;
+
+return_stmt := KW_RETURN expr? SEMICOLON;
+
+ctrl_stmt := if_stmt
+           | while_stmt
+           | return_stmt
+           ;
+
+// Statement block
+block_stmt := LCURL stmt* RCURL;
+
+///////////////////////////////////////////////////////////
+// Function declaration grammar                          //
+//                                                       //
+// Defines :                                             //
+//   fun_decl : top-level function declaration rule      //
+//   *_decl   : specialized declaration rules            //
+///////////////////////////////////////////////////////////
+
+param_type_pattern := WILDCARD | name;
+param_decl := IDENTIFIER (COLON param_type_pattern)?;
+
+param_list_decl := param_decl (COMMA param_list_decl)?;
+
+fun_decl := KW_FUN IDENTIFIER
+            LPAR param_list_decl? RPAR
+            stmt
+          ;
+
+///////////////////////////////////////////////////////////
+// Top-level statement rule                              //
+//                                                       //
+// Defines :                                             //
+//   stmt : any statement / declarator                   //
+///////////////////////////////////////////////////////////
+
+// Top-level statement rule
+stmt := ctrl_stmt
+      | block_stmt
+      | fun_decl
+      | expr SEMICOLON
+      ;
+
+///////////////////////////////////////////////////////////
+// Top-level program grammar                             //
+//                                                       //
+// Defines :                                             //
+//   prog : top-level program declaration rule           //
+///////////////////////////////////////////////////////////
+
+prog := stmt+ EOF
