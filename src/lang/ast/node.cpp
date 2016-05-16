@@ -74,6 +74,14 @@ std::size_t Node::chainLength() const
     return i;
 }
 
+Node* Node::root() const
+{
+    if (m_parent)
+        return m_parent->root();
+
+    return const_cast<Node*>(this);
+}
+
 void Node::setParent(Node* parent)
 {
     m_parent = parent;
@@ -93,6 +101,13 @@ void Node::attachSymtab(Symtab* symtab)
     m_symtab = symtab;
 }
 
+Symtab* Node::detachSymtab()
+{
+    Symtab* symtab = m_symtab;
+    m_symtab = nullptr;
+    return symtab;
+}
+
 Symtab* Node::symtab() const
 {
     if (m_symtab)
@@ -103,9 +118,9 @@ Symtab* Node::symtab() const
     return nullptr;
 }
 
-void Node::exchangeWith(Node* node)
+void Node::substituteWith(Node* node)
 {
-    node->m_parent = m_parent;
+    node->setParent(m_parent);
     node->m_symtab = m_symtab;
 
     if (m_parent)
@@ -117,6 +132,28 @@ void Node::exchangeWith(Node* node)
                 *it = node;
         }
     }
+
+    m_parent = nullptr;
+    m_symtab = nullptr;
+}
+
+void Node::exchangeWith(Node* node)
+{
+    node->setParent(m_parent);
+    node->m_symtab = m_symtab;
+
+    if (m_parent)
+    {
+        for (std::vector<Node*>::iterator it = m_parent->m_siblings.begin();
+             it != m_parent->m_siblings.end(); ++it)
+        {
+            if (*it == this)
+                *it = node;
+        }
+    }
+
+    for (auto sib : m_siblings)
+        sib->setParent(node);
 
     m_parent = nullptr;
     m_symtab = nullptr;
@@ -140,7 +177,7 @@ void Node::exchangeWith(Node* node)
 
 void Node::replaceBy(Node* node)
 {
-    node->m_parent = m_parent;
+    node->setParent(m_parent);
     node->m_symtab = m_symtab;
 
     if (m_parent)
@@ -163,6 +200,37 @@ void Node::replaceBy(Node* node)
 
     m_next = nullptr;
     m_prev = nullptr;
+}
+
+void Node::removeFromChain()
+{
+    if (m_prev)
+        m_prev->m_next = m_next;
+    if (m_next)
+        m_next->m_prev = m_prev;
+
+    m_prev = nullptr;
+    m_next = nullptr;
+}
+
+void Node::remove()
+{
+    if (m_parent)
+    {
+        for (std::vector<Node*>::iterator it = m_parent->m_siblings.begin();
+             it != m_parent->m_siblings.end(); ++it)
+        {
+            if (*it == this)
+            {
+                m_parent->m_siblings.erase(it);
+                break;
+            }
+        }
+    }
+
+    m_parent = nullptr;
+
+    removeFromChain();
 }
 
 Node*& Node::M_last()

@@ -34,6 +34,12 @@ namespace lang
             void visit(ast::FunDeclNode* node);
             void visit(ast::ReturnNode* node);
             void visit(ast::AssignNode* node);
+            void visit(ast::IfNode* node);
+            void visit(ast::ElifNode* node);
+            void visit(ast::ElseNode* node);
+            void visit(ast::WhileNode* node);
+            void visit(ast::ImportNode* node);
+            void visit(ast::ImportMaskNode* node);
             void visitDefault(ast::Node* node);
         };
     }

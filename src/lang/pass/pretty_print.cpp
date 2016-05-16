@@ -159,12 +159,31 @@ void PrettyPrint::visit(WhileNode* node)
 void PrettyPrint::visit(ReturnNode* node)
 {
     M_indent();
-    m_os << "(Return" << std::endl;
-    ++m_indent;
+    m_os << "(Return";
     if (node->siblings().size())
+    {
+        m_os << std::endl;
+        ++m_indent;
         node->siblings()[0]->accept(this);
+        --m_indent;
+    }
     m_os << ")";
-    --m_indent;
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(ImportNode* node)
+{
+    M_indent();
+    m_os << "(Import: " << node->name << std::endl;
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(ImportMaskNode* node)
+{
+    M_indent();
+    m_os << "(ImportMask: " << node->name << "." << node->mask << std::endl;
 
     M_follow(node);
 }
@@ -313,10 +332,18 @@ void PrettyPrint::visit(IR_GotoNode* node)
     M_follow(node);
 }
 
-void PrettyPrint::visit(IR_GotoIfNode* node)
+void PrettyPrint::visit(IR_GotoIfTrueNode* node)
 {
     M_indent();
-    m_os << "(IR_GotoIf: " << node->name << ")";
+    m_os << "(IR_GotoIfTrue: " << node->name << ")";
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(IR_GotoIfFalseNode* node)
+{
+    M_indent();
+    m_os << "(IR_GotoIfFalse: " << node->name << ")";
 
     M_follow(node);
 }
@@ -357,6 +384,22 @@ void PrettyPrint::visit(IR_PopNode* node)
 {
     M_indent();
     m_os << "(IR_Pop)";
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(IR_ImportNode* node)
+{
+    M_indent();
+    m_os << "(IR_Import: " << node->name << std::endl;
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(IR_ImportMaskNode* node)
+{
+    M_indent();
+    m_os << "(IR_ImportMask: " << node->name << "." << node->mask << std::endl;
 
     M_follow(node);
 }

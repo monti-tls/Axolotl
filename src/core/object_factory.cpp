@@ -1,9 +1,22 @@
 #include "core/object_factory.hpp"
+#include "lib/lib.hpp"
 
 namespace core
 {
-    std::map<std::size_t, ObjectFactory::Interface> ObjectFactory::m_interfaces;
-    std::map<std::size_t, std::string> ObjectFactory::m_names;
-    std::map<std::size_t, ObjectFactory::ObjectList> ObjectFactory::m_constructors;
-    std::map<std::size_t, ObjectFactory::NamedObjectList> ObjectFactory::m_methods;
+    ObjectFactory::Impl* ObjectFactory::m_impl = nullptr;
+
+    namespace detail
+    {
+        static void __attribute__((constructor)) ObjectFactory_init()
+        {
+            ObjectFactory::m_impl = new ObjectFactory::Impl();
+            
+            lib::recordAll();
+        }
+
+        static void __attribute__((destructor)) ObjectFactory_fini()
+        {
+            delete ObjectFactory::m_impl;
+        }
+    }
 }

@@ -24,16 +24,21 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <list>
 
 namespace vm
 {
     class Engine
     {
     public:
-        Engine(Module* main_module);
+        Engine(Module const& main_module);
         ~Engine();
 
         core::Object execute(Function const& fun, std::vector<core::Object> const& args);
+
+        std::list<Module> const& imports() const;
+        bool hasImported(std::string const& name) const;
+        Module const& imported(std::string const& name) const;
 
     private:
         void M_initOpcodes();
@@ -49,11 +54,11 @@ namespace vm
         core::Object& M_stackAt(int index);
         core::Object const& M_stackAt(int index) const;
 
-        void M_changeModule(Module* module);
+        void M_changeModule(Module const& module);
         uint32_t M_fetch();
         void M_decode();
         bool M_execute();
-        StackFrame M_makeFrame() const;
+        StackFrame M_makeFrame(bool dummy = false) const;
         bool M_setFrame(StackFrame const& frame);
         void M_invoke(core::Object fun, int argc);
         bool M_leave();
@@ -61,7 +66,8 @@ namespace vm
         void M_error(std::string const& msg) const;
 
     private:
-        Module* m_main_module;
+        Module m_main_module;
+        std::list<Module> m_imports;
 
         std::vector<core::Object> m_stack;
         std::shared_ptr<bits::Buffer> m_text;

@@ -15,10 +15,9 @@
  */
 
 #include "core/signature.hpp"
+#include "lang/std_names.hpp"
 
 using namespace core;
-
-const std::string Signature::AnyTypeName = "*";
 
 Signature::Signature(Signature::TypeList const& arguments, bool returns)
     : m_returns(returns)
@@ -41,7 +40,7 @@ bool Signature::match(std::vector<Object> const& args) const
 
     for (int i = 0; i < (int) args.size(); ++i)
     {
-        if (m_arguments[i] == AnyTypeName)
+        if (m_arguments[i] == lang::std_any_type)
             continue;
 
         if (args[i].classname() != m_arguments[i])

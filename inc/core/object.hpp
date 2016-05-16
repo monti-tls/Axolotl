@@ -94,6 +94,7 @@ namespace core
         Object operator>=(Object const& other) const;
 
         operator bool() const;
+        std::string serialize() const;
 
         static Object const& nil();
         static void setupBuiltinMembers(Object& obj);

@@ -19,6 +19,8 @@
 
 #include "lang/ast/node_visitor.hpp"
 
+#include <string>
+
 namespace lang
 {
     namespace ast
@@ -26,17 +28,25 @@ namespace lang
         class NodeGenerator : public NodeVisitor
         {
         public:
-            using NodeVisitor::NodeVisitor;
+            NodeGenerator(ParserBase* parser, bool nofollow = false);
+            NodeGenerator(NodeGenerator* gen, bool nofollow = false);
             virtual ~NodeGenerator();
 
             virtual void init();
             Node* generated() const;
 
         protected:
+            std::string M_newLabel();
             void M_emit(Node* node);
+            void M_emitLabel(Node* parent, std::string const& name);
+            void M_emitGoto(Node* parent, std::string const& name);
+            void M_emitGotoIfTrue(Node* parent, std::string const& name);
+            void M_emitGotoIfFalse(Node* parent, std::string const& name);
 
         private:
             Node* m_generated;
+            int m_label_alloc;
+            int* m_label_alloc_ptr;
 
         public:
             template <typename Generator, typename... Args>

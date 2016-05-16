@@ -35,6 +35,9 @@ namespace core
 {
     namespace detail
     {
+        static void ObjectFactory_init();
+        static void ObjectFactory_fini();
+
         template <typename T>
         struct Helper
         { static void helper() {} };
@@ -46,6 +49,9 @@ namespace core
 
     class ObjectFactory
     {
+        friend void detail::ObjectFactory_init();
+        friend void detail::ObjectFactory_fini();
+        
     private:
         typedef std::function<Object(Some const&)> Interface;
         typedef std::list<Object> ObjectList;
@@ -84,15 +90,15 @@ namespace core
         { return MethodListBuilder(); }
 
         template <typename T>
-        static void registerType(std::string const& name,
+        static void record(std::string const& name,
                                  ConstructorListBuilder const& constructors,
                                  MethodListBuilder const& methods)
         {
             std::size_t type = typeId<T>();
-            m_names[type] = name;
-            m_constructors[type] = constructors.list;
-            m_methods[type] = methods.named_list;
-            m_interfaces[type] = [=](Some const& value) -> Object
+            m_impl->names[type] = name;
+            m_impl->constructors[type] = constructors.list;
+            m_impl->methods[type] = methods.named_list;
+            m_impl->interfaces[type] = [=](Some const& value) -> Object
             {
                 Object object(Object::Kind::Scalar, value, name);
                 Object::setupBuiltinMembers(object);
@@ -103,18 +109,18 @@ namespace core
         }
 
         template <typename T>
-        static void registerType(std::string const& name, std::function<Object(T)> const& iface)
+        static void record(std::string const& name, std::function<Object(T)> const& iface)
         {
             std::size_t type = typeId<T>();
-            m_names[type] = name;
-            m_interfaces[type] = [=](Some const& value) -> Object { return iface(const_cast<T&>(value.as<unqualified<T>>())); };
+            m_impl->names[type] = name;
+            m_impl->interfaces[type] = [=](Some const& value) -> Object { return iface(const_cast<T&>(value.as<unqualified<T>>())); };
         }
 
         template <typename T>
         static std::string typeName()
         {
-            auto it = m_names.find(typeId<T>());
-            if (it == m_names.end())
+            auto it = m_impl->names.find(typeId<T>());
+            if (it == m_impl->names.end())
                 throw std::runtime_error("core::ObjectFactory::typeName: object type is not registered");
 
             return it->second;
@@ -122,15 +128,15 @@ namespace core
 
         static std::size_t typeIdFromName(std::string const& classname)
         {
-            auto it = std::find_if(m_names.begin(), m_names.end(),
+            auto it = std::find_if(m_impl->names.begin(), m_impl->names.end(),
                 [=](std::pair<std::size_t, std::string> const& item) { return item.second == classname; });
-            if (it == m_names.end())
+            if (it == m_impl->names.end())
                 throw std::runtime_error("core::ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
             return it->first;
         }
 
         static ObjectList const& typeConstructors(std::string const& classname)
-        { return m_constructors[typeIdFromName(classname)]; }
+        { return m_impl->constructors[typeIdFromName(classname)]; }
 
         static Object const& typeMethod(std::string const& classname, std::string const& name)
         {
@@ -138,7 +144,7 @@ namespace core
             std::size_t typeId = typeIdFromName(classname);
 
             // Get method list
-            NamedObjectList const& methods = m_methods[typeId];
+            NamedObjectList const& methods = m_impl->methods[typeId];
 
             // Check if method exists and if its not polymorphic
             auto mpred = [=](NamedObject const& item) { return item.first == name; };
@@ -160,8 +166,8 @@ namespace core
         template <typename T>
         static Object build(T value, typename std::enable_if<not is_callable<T>::value>::type* dummy = nullptr)
         {
-            std::map<std::size_t, Interface>::iterator it = m_interfaces.find(typeId<T>());
-            if (it == m_interfaces.end())
+            std::map<std::size_t, Interface>::iterator it = m_impl->interfaces.find(typeId<T>());
+            if (it == m_impl->interfaces.end())
                 throw std::runtime_error("core::ObjectFactory::build: object type is not registered");
 
             return it->second(Some(value));
@@ -183,10 +189,13 @@ namespace core
         { return Object(Object::Kind::Callable, Callable(fun), lang::std_callable_classname); }
 
     private:
-        static std::map<std::size_t, Interface> m_interfaces;
-        static std::map<std::size_t, std::string> m_names;
-        static std::map<std::size_t, ObjectList> m_constructors;
-        static std::map<std::size_t, NamedObjectList> m_methods;
+        static struct Impl
+        {
+            std::map<std::size_t, Interface> interfaces;
+            std::map<std::size_t, std::string> names;
+            std::map<std::size_t, ObjectList> constructors;
+            std::map<std::size_t, NamedObjectList> methods;
+        }* m_impl;
     };
 }
 

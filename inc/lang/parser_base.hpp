@@ -43,17 +43,18 @@ namespace lang
 
         void M_build();
         void M_define(std::string const& name, std::string const& definition, core::Object const& build_token);
-        void M_setTokenName(int token, std::string const& name);
-        std::string M_tokenName(int token);
+        void M_setTokenName(int token, std::string const& name, bool prefer_lexeme = false);
+        std::string M_tokenName(int token) const;
+        std::string M_tokenName(Token const& token) const;
         void M_initLookahead();
         Token M_get();
         Token M_eat(int which);
         Token const& M_peek(std::size_t depth = 0);
         void M_unexpected(Token const& token);
-
+        
     private:
         Lexer m_lexer;
-        std::map<int, std::string> m_token_names;
+        std::map<int, std::pair<bool, std::string>> m_token_names;
         std::size_t m_lookahead_depth;
         std::vector<Token> m_lookahead;
     };

@@ -51,6 +51,9 @@ namespace lang
         const_iterator begin() const;
         const_iterator end() const;
 
+        std::size_t localsCount() const;
+        std::size_t argumentsCount() const;
+
     private:
         const_iterator M_find(std::string const& name, FindResult* res = nullptr) const;
 

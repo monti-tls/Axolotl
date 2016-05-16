@@ -18,6 +18,7 @@
 #define __AXOLOTL_VM_STACK_FRAME_H__
 
 #include "vm/forward.hpp"
+#include "vm/module.hpp"
 
 namespace vm
 {
@@ -25,7 +26,7 @@ namespace vm
     {
         bool dummy;
         int pc;
-        Module* module;
+        Module module;
         int locals_start;
         int locals_count;
         int argc;

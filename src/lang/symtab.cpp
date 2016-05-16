@@ -46,6 +46,30 @@ Symtab::const_iterator Symtab::begin() const
 Symtab::const_iterator Symtab::end() const
 { return m_symbols.end(); }
 
+std::size_t Symtab::localsCount() const
+{
+    std::size_t count = 0;
+    for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it)
+    {
+        if (it->binding() == Symbol::Local)
+            ++count;
+    }
+
+    return count;
+}
+
+std::size_t Symtab::argumentsCount() const
+{
+    std::size_t count = 0;
+    for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it)
+    {
+        if (it->which() == Symbol::Argument)
+            ++count;
+    }
+
+    return count;
+}
+
 Symtab::const_iterator Symtab::M_find(std::string const& name, FindResult* res) const
 {
     std::size_t index = 0;

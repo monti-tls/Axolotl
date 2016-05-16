@@ -84,16 +84,28 @@ void ParserBase::M_build()
 void ParserBase::M_define(std::string const& name, std::string const& definition, core::Object const& build_token)
 { m_lexer.define(name, definition, build_token); }
 
-void ParserBase::M_setTokenName(int token, std::string const& name)
-{ m_token_names.insert(std::make_pair(token, name)); }
+void ParserBase::M_setTokenName(int token, std::string const& name, bool prefer_lexeme)
+{ m_token_names.insert(std::make_pair(token, std::make_pair(prefer_lexeme, name))); }
 
-std::string ParserBase::M_tokenName(int token)
+std::string ParserBase::M_tokenName(int token) const
 {
     auto it = m_token_names.find(token);
     if (it == m_token_names.end())
         return "???";
 
-    return it->second;
+    return it->second.second;
+}
+
+std::string ParserBase::M_tokenName(Token const& token) const
+{
+    auto it = m_token_names.find(token.which());
+    if (it == m_token_names.end())
+        return "???";
+
+    if (it->second.first)
+        return token.lexeme();
+
+    return it->second.second;
 }
 
 void ParserBase::M_initLookahead()
@@ -122,7 +134,11 @@ Token ParserBase::M_eat(int which)
     if (M_peek().which() != which)
     {
         std::ostringstream ss;
-        ss << "expecting " << M_tokenName(which) << ", got " << M_tokenName(M_peek().which());
+        ss << "expecting ";
+        ss << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+        ss << M_tokenName(which) << util::ansi::clear;
+        ss << ", got " << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+        ss << M_tokenName(M_peek()) << util::ansi::clear;
         error(M_peek(), ss.str());
     }
 
@@ -138,4 +154,9 @@ Token const& ParserBase::M_peek(std::size_t depth)
 }
 
 void ParserBase::M_unexpected(Token const& token)
-{ error(token, "unexpected token " + M_tokenName(token.which())); }
+{
+    std::ostringstream ss;
+    ss << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+    ss << M_tokenName(token) << util::ansi::clear;
+    error(token, "unexpected token " + ss.str());
+}

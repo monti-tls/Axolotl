@@ -19,6 +19,7 @@
 
 #include "lang/forward.hpp"
 #include "lang/parser_base.hpp"
+#include "vm/module.hpp"
 
 #include <string>
 #include <iostream>
@@ -27,7 +28,7 @@
 
 namespace lang
 {
-    #define DEF_TOKEN(name) TOK_ ## name,
+    #define DEF_TOKEN(name, printable, prefer_lexeme) TOK_ ## name,
     #define DEF_ALIAS(name, alias) TOK_ ## name = TOK_ ## alias,
     enum
     {
@@ -39,7 +40,7 @@ namespace lang
     class Parser : public ParserBase
     {
     public:
-        Parser(std::istream& in);
+        Parser(std::istream& in, vm::Module const& module);
         ~Parser();
 
         ast::Node* parse();
@@ -68,6 +69,8 @@ namespace lang
         void M_param_list_decl();
         ast::Node* M_fun_decl();
 
+        ast::Node* M_import_stmt();
+
         ast::Node* M_stmt();
         ast::Node* M_prog();
 
@@ -85,6 +88,7 @@ namespace lang
 
     private:
         std::stack<Symtab*> m_scope;
+        vm::Module m_module;
     };
 }
 

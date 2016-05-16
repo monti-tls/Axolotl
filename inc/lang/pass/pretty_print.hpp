@@ -44,6 +44,8 @@ namespace lang
             void visit(ast::ElseNode* node);
             void visit(ast::WhileNode* node);
             void visit(ast::ReturnNode* node);
+            void visit(ast::ImportNode* node);
+            void visit(ast::ImportMaskNode* node);
             void visit(ast::FunDeclNode* node);
             void visit(ast::ProgNode* node);
             void visit(ast::GlobalRefNode* node);
@@ -60,12 +62,15 @@ namespace lang
             void visit(ast::IR_StorMemberNode* node);
             void visit(ast::IR_LabelNode* node);
             void visit(ast::IR_GotoNode* node);
-            void visit(ast::IR_GotoIfNode* node);
+            void visit(ast::IR_GotoIfTrueNode* node);
+            void visit(ast::IR_GotoIfFalseNode* node);
             void visit(ast::IR_InvokeNode* node);
             void visit(ast::IR_MethodNode* node);
             void visit(ast::IR_ReturnNode* node);
             void visit(ast::IR_LeaveNode* node);
             void visit(ast::IR_PopNode* node);
+            void visit(ast::IR_ImportNode* node);
+            void visit(ast::IR_ImportMaskNode* node);
 
         private:
             void M_follow(ast::Node* node);

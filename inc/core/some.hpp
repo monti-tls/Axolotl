@@ -35,11 +35,7 @@ namespace core
         {}
 
         Some(Some const& cpy)
-        {
-            if (cpy.m_data)
-                ++cpy.m_data->refcount;
-            m_data = cpy.m_data;
-        }
+        { m_data = cpy.m_data ? cpy.m_data->copy() : nullptr; }
 
         Some(Some&& tmp)
         {
@@ -54,9 +50,7 @@ namespace core
         {
             clear();
 
-            if (cpy.m_data)
-                ++cpy.m_data->refcount;
-            m_data = cpy.m_data;
+            m_data = cpy.m_data ? cpy.m_data->copy() : nullptr;
             return *this;
         }
 
@@ -77,8 +71,7 @@ namespace core
             if(!m_data)
                 return;
 
-            if (!--m_data->refcount)
-                delete m_data;
+            delete m_data;
             m_data = nullptr;
         }
 
@@ -126,18 +119,12 @@ namespace core
         class Base
         {
         public:
-            Base()
-                : refcount(1)
-            {}
-
-            virtual ~Base()
-            {}
+            Base() {}
+            virtual ~Base() {}
 
             virtual bool is(size_t) const = 0;
             virtual size_t id() const = 0;
             virtual Base* copy() const = 0;
-
-            int refcount;
         };
 
         template <typename T>

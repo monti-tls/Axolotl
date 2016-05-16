@@ -29,6 +29,7 @@ namespace bits
     };
 
     std::string opcode_as_string(Opcode op);
+    int opcode_nargs(Opcode op);
 }
 
 #endif // __AXOLOTL_BITS_OPCODES_H__

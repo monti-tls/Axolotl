@@ -24,7 +24,7 @@ using namespace vm;
 using namespace bits;
 using namespace core;
 
-Function::Function(Module* module, bits::blob_symbol* symbol)
+Function::Function(Module const& module, bits::blob_symbol* symbol)
     : m_module(module)
     , m_symbol(symbol)
 {
@@ -36,15 +36,15 @@ Function::~Function()
 
 Object Function::invoke(std::vector<Object> const& args) const
 {
-    if (!m_module->engine())
+    if (!m_module.engine())
         throw std::runtime_error("vm::Function::invoke: module is not attached to an engine");
-    return m_module->engine()->execute(*this, args);
+    return m_module.engine()->execute(*this, args);
 }
 
 core::Signature const& Function::signature() const
 { return *m_signature; }
 
-Module* Function::module() const
+Module const& Function::module() const
 { return m_module; }
 
 bits::blob_symbol* Function::symbol() const
@@ -53,10 +53,10 @@ bits::blob_symbol* Function::symbol() const
 void Function::M_createSignature()
 {
     std::vector<Signature::TypeName> args;
-    m_module->blob().foreachSignatureArgument(m_symbol->s_signature, [&](blob_off soff)
+    m_module.blob().foreachSignatureArgument(m_symbol->s_signature, [&](blob_off soff)
     {
         std::string type;
-        if (!m_module->blob().string(soff, type))
+        if (!m_module.blob().string(soff, type))
             throw std::runtime_error("vm::Function::M_createSignature: invalid signature argument");
         args.push_back(type);
     });

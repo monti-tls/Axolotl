@@ -15,4 +15,12 @@
  */
 
 #include "lib/forward.hpp"
+#include "lib/core.hpp"
+#include "lib/scalars.hpp"
+#include "lib/lang.hpp"
 #include "lib/dict.hpp"
+
+namespace lib
+{
+    void recordAll();
+}

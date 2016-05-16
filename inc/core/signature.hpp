@@ -27,7 +27,6 @@ namespace core
     class Signature
     {
     public:
-        static const std::string AnyTypeName;
         typedef std::string TypeName;
         typedef std::vector<TypeName> TypeList;
 

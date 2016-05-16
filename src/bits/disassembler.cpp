@@ -124,23 +124,11 @@ void Disassembler::dumpText()
 
     auto decodeInstruction = [&](int& pc, std::vector<int>& operands)
     {
-        static std::map<Opcode, int> opcodes_nargs;
-        static bool opcodes_nargs_inited = false;
-
-        if (!opcodes_nargs_inited)
-        {   
-            #define OPCODE(name, nargs) opcodes_nargs[name] = nargs;
-            #include "bits/opcodes.def"
-            #undef OPCODE
-
-            opcodes_nargs_inited = true;
-        }
-
         auto fetch = [&]()
         { return *((uint32_t*) text->raw(sizeof(uint32_t) * pc++, sizeof(uint32_t))); };
 
         Opcode opcode = (Opcode) fetch();
-        for (int i = 0; i < opcodes_nargs[opcode]; ++i)
+        for (int i = 0; i < opcode_nargs(opcode); ++i)
             operands.push_back((int) fetch());
 
         return opcode;
@@ -287,6 +275,27 @@ void Disassembler::dumpText()
             case JMP_IF_TRUE:
                 m_os << jmp_targets[operands[0]].first;
                 break;
+
+            case IMPORT:
+            {
+                std::string name;
+                if (!m_blob.string(operands[0], name))
+                    name = "<invalid>";
+                m_os << name;
+                break;
+            }
+
+            case IMPORT_MASK:
+            {
+                std::string name;
+                if (!m_blob.string(operands[0], name))
+                    name = "<invalid>";
+                std::string mask;
+                if (!m_blob.string(operands[1], mask))
+                    name = "<invalid>";
+                m_os << name << "." << mask;
+                break;
+            }
 
             default:
                 break;

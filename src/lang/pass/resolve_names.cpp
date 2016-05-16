@@ -33,6 +33,9 @@ void ResolveNames::visit(NameNode* node)
 
                     case Symbol::Local:
                     {
+                        if (res.locality != 0UL)
+                            break;
+                        
                         LocalRefNode* new_node = new LocalRefNode(node->startToken());
                         new_node->index = res.index - res.args_count;
 

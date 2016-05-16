@@ -15,11 +15,17 @@
  */
 
 #include "lang/pass/forward.hpp"
+#include "lang/pass/pretty_print.hpp"
+#include "lang/pass/extract_main.hpp"
 #include "lang/pass/expr_result_check.hpp"
 #include "lang/pass/bind_names.hpp"
 #include "lang/pass/resolve_names.hpp"
 #include "lang/pass/resolve_consts.hpp"
 #include "lang/pass/generate_rvalue.hpp"
 #include "lang/pass/generate_lvalue.hpp"
+#include "lang/pass/generate_if_elif_else.hpp"
+#include "lang/pass/generate_while.hpp"
 #include "lang/pass/generate_ir.hpp"
-#include "lang/pass/pretty_print.hpp"
+#include "lang/pass/rename_label.hpp"
+#include "lang/pass/clean_labels.hpp"
+#include "lang/pass/bytecode_backend.hpp"

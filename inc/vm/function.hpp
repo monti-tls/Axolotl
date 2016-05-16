@@ -28,20 +28,20 @@ namespace vm
     class Function
     {
     public:
-        Function(Module* module, bits::blob_symbol* symbol);
+        Function(Module const& module, bits::blob_symbol* symbol);
         ~Function();
 
         core::Object invoke(std::vector<core::Object> const& args) const;
 
         core::Signature const& signature() const;
-        Module* module() const;
+        Module const& module() const;
         bits::blob_symbol* symbol() const;
 
     private:
         void M_createSignature();
 
     private:
-        Module* m_module;
+        Module m_module;
         bits::blob_symbol* m_symbol;
         std::shared_ptr<core::Signature> m_signature;
     };

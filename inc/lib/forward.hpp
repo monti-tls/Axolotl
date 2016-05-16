@@ -19,6 +19,9 @@
 
 namespace lib
 {
+    class Core;
+    class Scalars;
+    class Lang;
     class Dict;
 }
 

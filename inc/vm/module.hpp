@@ -20,19 +20,29 @@
 #include "vm/forward.hpp"
 #include "bits/bits.hpp"
 #include "core/core.hpp"
+#include "lang/forward.hpp"
 
 #include <string>
 #include <map>
 #include <vector>
 #include <stdexcept>
+#include <list>
 
 namespace vm
 {
     class Module
     {
     public:
-        Module(bits::Blob const& blob);
+        Module();
+        Module(std::string const& name);
+        Module(std::string const& name, bits::Blob const& blob);
+        Module(Module const& cpy);
         ~Module();
+
+        Module& operator=(Module const& cpy);
+        bool operator==(Module const& other) const;
+
+        std::string const& name() const;
 
         core::Object& global(std::string const& name);
         core::Object const& global(std::string const& name) const;
@@ -40,22 +50,35 @@ namespace vm
         int addConstant(core::Object const& value);
         core::Object const& constant(int index) const;
 
+        void setBlob(bits::Blob const& blob);
         bits::Blob const& blob() const;
 
         void setEngine(Engine* engine);
         Engine* engine() const;
 
+        std::list<Module> const& imports() const;
+        Module import(std::string const& name, std::string const& mask = "", lang::Symtab* symtab = nullptr);
+
     private:
+        void M_incref();
+        void M_decref();
         void M_processSymbols();
         void M_processTypeSpecs();
         void M_processConstants();
         core::Object M_makeFunction(bits::blob_symbol* symbol) const;
 
     public:
-        bits::Blob m_blob;
-        std::map<std::string, core::Object> m_globals;
-        std::vector<core::Object> m_constants;
-        Engine* m_engine;
+        class Impl
+        {
+        public:
+            std::string name;
+            bits::Blob blob;
+            std::map<std::string, core::Object> globals;
+            std::vector<core::Object> constants;
+            Engine* engine;
+            std::list<Module> imports;
+            int refcount;
+        }* m_impl;
     };
 }
 

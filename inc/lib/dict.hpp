@@ -30,7 +30,7 @@ namespace lib
         typedef std::map<core::Object, core::Object>::const_iterator const_iterator;
 
     public:
-        static void registerType();
+        static void record();
 
     public:
         Dict();

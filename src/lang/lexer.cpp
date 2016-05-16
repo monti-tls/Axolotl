@@ -444,9 +444,6 @@ std::string Lexer::M_getLexeme()
     if (it == m_buffers[m_left] + m_buffer_size)
         it = m_buffers[m_right];
 
-    if (it == m_forward)
-        return lexeme;
-
     for (; *it; ++it)
     {
         lexeme += *it;

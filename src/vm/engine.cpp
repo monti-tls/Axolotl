@@ -27,19 +27,31 @@ using namespace vm;
 using namespace bits;
 using namespace core;
 
-Engine::Engine(Module* main_module)
+Engine::Engine(Module const& main_module)
     : m_main_module(main_module)
     , m_text(nullptr)
     , m_module(nullptr)
 {
-    m_main_module->setEngine(this);
+    m_imports = m_main_module.imports();
+    for (auto& module : m_imports)
+        module.setEngine(this);
+
+    m_main_module.setEngine(this);
     M_changeModule(main_module);
 
     M_initOpcodes();
 }
 
 Engine::~Engine()
-{ m_main_module->setEngine(nullptr); }
+{
+    if (m_module)
+        delete m_module;
+
+    for (auto& module : m_imports)
+        module.setEngine(nullptr);
+
+    m_main_module.setEngine(nullptr);
+}
 
 Object Engine::execute(Function const& fun, std::vector<Object> const& args)
 {
@@ -52,9 +64,7 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
 
     // Push a dummy stack frame, when we will
     //   reach it execution will stop
-    StackFrame frame;
-    frame.dummy = true;
-    M_push(frame);
+    M_push(M_makeFrame(true));
 
     // Branch to the function
     M_branchToFunction(fun);
@@ -66,6 +76,27 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
         ret = M_pop();
 
     return ret;
+}
+
+std::list<Module> const& Engine::imports() const
+{ return m_imports; }
+
+bool Engine::hasImported(std::string const& name) const
+{
+    for (auto const& module : m_imports)
+        if (module.name() == name)
+            return true;
+
+    return false;
+}
+
+Module const& Engine::imported(std::string const& name) const
+{
+    for (auto const& module : m_imports)
+        if (module.name() == name)
+            return module;
+
+    throw std::runtime_error("vm::Engine::imported: module `" + name + "' has never been imported");
 }
 
 void Engine::M_initOpcodes()
@@ -137,18 +168,18 @@ core::Object const& Engine::M_stackAt(int index) const
     return m_stack.at(index);
 }
 
-void Engine::M_changeModule(Module* module)
+void Engine::M_changeModule(Module const& module)
 {
-    if (!module)
-        throw std::runtime_error("vm::Engine::M_changeModule: null module");
-
-    if (module == m_module)
+    if (m_module && module == *m_module)
         return;
 
-    m_text = module->blob().text();
+    m_text = module.blob().text();
     if (!m_text)
         throw std::runtime_error("vm::Engine::M_changeModule: module has no text");
-    m_module = module;
+
+    if (m_module)
+        delete m_module;
+    m_module = new Module(module);
 }
 
 uint32_t Engine::M_fetch()
@@ -180,6 +211,13 @@ bool Engine::M_execute()
 
     switch (m_ir)
     {
+        case NOP:
+            break;
+
+        case POP:
+            M_pop();
+            break;
+
         case LOAD_LOCAL:
         case STOR_LOCAL:
         {
@@ -388,6 +426,31 @@ bool Engine::M_execute()
             break;
         }
 
+        case IMPORT:
+        case IMPORT_MASK:
+        {
+            std::string name;
+            if (!m_module->blob().string(m_operands[0], name))
+                M_error("M_execute: invalid string index");
+
+            std::string mask = "";
+            if (m_ir == IMPORT_MASK)
+            {
+                if (!m_module->blob().string(m_operands[1], mask))
+                    M_error("M_execute: invalid string index");
+            }
+
+            if (!hasImported(name))
+            {
+                Module module(m_module->import(name, mask));
+                module.setEngine(this);
+                m_imports.push_back(module);
+            }
+
+            imported(name).global("__main__")();
+            break;
+        }
+
         default:
             M_error("M_execute: invalid opcode");
             break;
@@ -395,13 +458,16 @@ bool Engine::M_execute()
 
     return true;
 }
-StackFrame Engine::M_makeFrame() const
+
+StackFrame Engine::M_makeFrame(bool dummy) const
 {
     StackFrame frame;
 
-    frame.dummy = false;
+    if (m_module)
+        frame.module = *m_module;
+
+    frame.dummy = dummy;
     frame.pc = m_pc;
-    frame.module = m_module;
     frame.locals_start = m_locals_start;
     frame.locals_count = m_locals_count;
     frame.argc = m_argc;
@@ -411,16 +477,13 @@ StackFrame Engine::M_makeFrame() const
 
 bool Engine::M_setFrame(StackFrame const& frame)
 {
-    if (frame.dummy)
-        return true;
-
-    m_pc = frame.pc;
     M_changeModule(frame.module);
+    m_pc = frame.pc;
     m_locals_start = frame.locals_start;
     m_locals_count = frame.locals_count;
     m_argc = frame.argc;
 
-    return false;
+    return frame.dummy;
 }
 
 void Engine::M_invoke(Object fun, int argc)

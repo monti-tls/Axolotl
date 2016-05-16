@@ -83,6 +83,8 @@ namespace lang
             Node* last() const;
             //! Get the length of the chain *starting at this node*
             std::size_t chainLength() const;
+            //! Get the root of the current tree
+            Node* root() const;
 
             //! Change the parent of this node and of all
             //!   subsequent nodes in the chain
@@ -92,16 +94,25 @@ namespace lang
 
             //! Attach a symbol table to this node
             void attachSymtab(Symtab* symtab);
+            //! Detatch the symbol table from this node
+            Symtab* detachSymtab();
             //! Get the nearest symbol table, either the one
             //!   attached to this node (if any), or parent()->symtab()
             Symtab* symtab() const;
-
+            
+            //! Substitute this node with another one, don't
+            //!   preserve chaining
+            void substituteWith(Node* node);
             //! Exchange this node with another one, keeping
-            //!   the same children
+            //!   the same children, keep in chain
             void exchangeWith(Node* node);
             //! Replace this node with another one, discarding
-            //!   any children
+            //!   any children, keep in chain
             void replaceBy(Node* node);
+            //! Remove this node from the chain
+            void removeFromChain();
+            //! Remove this node from the tree
+            void remove();
 
         private:
             Node*& M_last();

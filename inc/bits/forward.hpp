@@ -27,6 +27,7 @@ namespace bits
     struct blob_typespec;
     class Blob;
     class Disassembler;
+    class Assembler;
 }
 
 #endif // __AXOLOTL_BITS_FORWARD_H__

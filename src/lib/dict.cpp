@@ -1,11 +1,13 @@
 #include "lib/dict.hpp"
+#include "lang/std_names.hpp"
 
 using namespace lib;
 using namespace core;
+using namespace lang;
 
-void Dict::registerType()
+void Dict::record()
 {
-    ObjectFactory::registerType<Dict>("dict",
+    ObjectFactory::record<Dict>("dict",
         ObjectFactory::constructorList(),
         ObjectFactory::methodList()
         ("find",          [](Dict const& dict, Object const& key)

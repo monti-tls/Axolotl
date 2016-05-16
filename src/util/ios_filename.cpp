@@ -1,6 +1,7 @@
 #include "util/ios_filename.hpp"
 
 #include <sstream>
+#include <cstring>
 #include <unistd.h>
 
 namespace util
@@ -17,6 +18,7 @@ namespace util
             ss << "/proc/self/fd/" << fd;
 
             char* buffer = new char[512];
+            std::memset(buffer, 0, 512);
             if (readlink(ss.str().c_str(), buffer, 512) >= 0)
             {
                 path = buffer;

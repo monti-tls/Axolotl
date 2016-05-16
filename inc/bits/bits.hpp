@@ -20,3 +20,4 @@
 #include "bits/opcodes.hpp"
 #include "bits/blob.hpp"
 #include "bits/disassembler.hpp"
+#include "bits/assembler.hpp"

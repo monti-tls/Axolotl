@@ -14,21 +14,25 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-OPCODE(INVALID,       0)
-OPCODE(LOAD_CONST,    1) //! if _1 < 0, argument, otherwise from const table
-OPCODE(LOAD_LOCAL,    1) //! index _1
-OPCODE(STOR_LOCAL,    1) //! _1 = pop()
-OPCODE(LOAD_MEMBER,   1) //! push(pop()[_1])
-OPCODE(STOR_MEMBER,   1) //! pop()[_1] = pop()
-OPCODE(LOAD_GLOBAL,   1) //! push(globals(_1))
-OPCODE(STOR_GLOBAL,   1) //! globals(_1) = pop()
-OPCODE(INVOKE,        1) //! pop().invoke(_1 arguments)
-OPCODE(METHOD,        2) //! self = pop(); self.invoke(self, _1 arguments)
-OPCODE(LEAVE,         0) //! returns no value
-OPCODE(RETURN,        0) //! returns pop()
-OPCODE(JMP,           1) //! pc = _1
-OPCODE(JMPR,          1) //! pc += _1
-OPCODE(JMP_IF_FALSE,  1) //! if !pop() pc = _1
-OPCODE(JMPR_IF_FALSE, 1) //! if !pop() pc += _1
-OPCODE(JMP_IF_TRUE,   1) //! if pop() pc = _1
-OPCODE(JMPR_IF_TRUE,  1) //! if pop() pc += _1
+OPCODE(INVALID,       0) // invalid, triggers an exception
+OPCODE(NOP,           0) // nothing
+OPCODE(POP,           0) // pop()
+OPCODE(LOAD_CONST,    1) // if _1 < 0, argument, otherwise from const table
+OPCODE(LOAD_LOCAL,    1) // index _1
+OPCODE(STOR_LOCAL,    1) // _1 = pop()
+OPCODE(LOAD_MEMBER,   1) // push(pop()[_1])
+OPCODE(STOR_MEMBER,   1) // pop()[_1] = pop()
+OPCODE(LOAD_GLOBAL,   1) // push(globals(_1))
+OPCODE(STOR_GLOBAL,   1) // globals(_1) = pop()
+OPCODE(INVOKE,        1) // pop().invoke(_1 arguments)
+OPCODE(METHOD,        2) // self = pop(); self.invoke(self, _1 arguments)
+OPCODE(LEAVE,         0) // returns no value
+OPCODE(RETURN,        0) // returns pop()
+OPCODE(JMP,           1) // pc = _1
+OPCODE(JMPR,          1) // pc += _1
+OPCODE(JMP_IF_FALSE,  1) // if !pop() pc = _1
+OPCODE(JMPR_IF_FALSE, 1) // if !pop() pc += _1
+OPCODE(JMP_IF_TRUE,   1) // if pop() pc = _1
+OPCODE(JMPR_IF_TRUE,  1) // if pop() pc += _1
+OPCODE(IMPORT,        1)
+OPCODE(IMPORT_MASK,   2)

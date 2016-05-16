@@ -22,8 +22,6 @@ DOT          := '.';
 COMMA        := ',';
 SEMICOLON    := ';';
 COLON        := ':';
-YIELDS       := "->";
-YIELDS_MAYBE := "->?";
 
 // Expression tokens
 ARITH_ADD := '+';
@@ -236,6 +234,15 @@ fun_decl := KW_FUN IDENTIFIER
           ;
 
 ///////////////////////////////////////////////////////////
+// Import statement grammar                              //
+//                                                       //
+// Defines :                                             //
+//   import_stmt : import statement rule                 //
+///////////////////////////////////////////////////////////
+
+import_stmt := KW_IMPORT IDENTIFIER (DOT (WILDCARD | IDENTIFIER));
+
+///////////////////////////////////////////////////////////
 // Top-level statement rule                              //
 //                                                       //
 // Defines :                                             //
@@ -246,6 +253,7 @@ fun_decl := KW_FUN IDENTIFIER
 stmt := ctrl_stmt
       | block_stmt
       | fun_decl
+      | import_stmt
       | expr SEMICOLON
       ;
 

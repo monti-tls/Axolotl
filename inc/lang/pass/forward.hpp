@@ -21,13 +21,20 @@ namespace lang
 {
     namespace pass
     {
+        class PrettyPrint;
+        class ExtractMain;
         class ExprResultCheck;
         class BindNames;
         class ResolveNames;
         class ResolveConsts;
         class GenerateRValue;
         class GenerateLValue;
+        class GenerateIfElifElse;
+        class GenerateWhile;
         class GenerateIR;
+        class RenameLabel;
+        class CleanLabels;
+        class ByteCodeBackend;
     }
 }
 

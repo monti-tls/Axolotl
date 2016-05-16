@@ -5,6 +5,8 @@
 
 #include "lang/ast/ast.hpp"
 
+#include "core/core.hpp"
+
 #include <algorithm>
 #include <sstream>
 
@@ -12,8 +14,9 @@ using namespace lang;
 using namespace ast;
 using namespace lib;
 
-Parser::Parser(std::istream& in)
+Parser::Parser(std::istream& in, vm::Module const& module)
     : ParserBase(in, 1)
+    , m_module(module)
 { M_build(); }
 
 Parser::~Parser()
@@ -499,7 +502,7 @@ Node* Parser::M_block_stmt()
 void Parser::M_param_list_decl()
 {
     Token name = M_eat(TOK_IDENTIFIER);
-    std::string pattern = "";
+    std::string pattern = std_any_type;
 
     if (M_peek().which() == TOK_COLON)
     {
@@ -562,6 +565,75 @@ Node* Parser::M_fun_decl()
     return node;
 }
 
+Node* Parser::M_import_stmt()
+{
+    Token start_token = M_eat(TOK_KW_IMPORT);
+    Token name_token;
+
+    if (M_peek().which() == TOK_PACKAGE)
+        name_token = M_get();
+    else
+        name_token = M_eat(TOK_IDENTIFIER);
+
+    std::string name = name_token.what().unwrap<std::string>();
+    bool masked = false;
+    std::string mask = "";
+
+    if (M_peek().which() == TOK_DOT)
+    {
+        masked = true;
+        M_get();
+
+        if (M_peek().which() == TOK_WILDCARD)
+        {
+            M_get();
+            mask = std_package_wildcard;
+        }
+        else
+        {
+            Token token = M_eat(TOK_IDENTIFIER);
+            mask = token.what().unwrap<std::string>();
+        }
+    }
+
+    // Setup the symbol right now because the lookahead
+    //   might need it
+    Symbol symbol(Symbol::Package, name);
+    M_check(M_scope())->add(symbol);
+
+    // Load the package right now also
+    try
+    {
+        m_module.import(name, mask, M_scope());
+    }
+    catch(std::exception const& exc)
+    {
+        error(start_token, exc.what());
+    }
+
+    M_eat(TOK_SEMICOLON);
+
+    // Create the AST node
+    Node* node = nullptr;
+    if (masked)
+    {
+        ImportMaskNode* new_node = new ImportMaskNode(start_token);
+        new_node->name = name;
+        new_node->mask = mask;
+
+        node = new_node;
+    }
+    else
+    {
+        ImportNode* new_node = new ImportNode(start_token);
+        new_node->name = name;
+
+        node = new_node;
+    }
+
+    return node;
+}
+
 Node* Parser::M_stmt()
 {
     Node* node = nullptr;
@@ -586,6 +658,10 @@ Node* Parser::M_stmt()
 
         case TOK_KW_FUN:
             node = M_check(M_fun_decl());
+            break;
+
+        case TOK_KW_IMPORT:
+            node = M_check(M_import_stmt());
             break;
 
         default:
@@ -637,8 +713,6 @@ void Parser::M_setupLexer()
     M_define("COMMA",        "','",     Token(TOK_COMMA));
     M_define("SEMICOLON",    "';'",     Token(TOK_SEMICOLON));
     M_define("COLON",        "':'",     Token(TOK_COLON));
-    M_define("YIELDS",       "\"->\"",  Token(TOK_YIELDS));
-    M_define("YIELDS_MAYBE", "\"->?\"", Token(TOK_YIELDS_MAYBE));
 
     M_define("ARITH_ADD",    "'+'",     Token(TOK_ARITH_ADD));
     M_define("ARITH_SUB",    "'-'",     Token(TOK_ARITH_SUB));
@@ -666,8 +740,17 @@ void Parser::M_setupLexer()
     M_define("KW_CLASS", "\"class\"",   Token(TOK_KW_CLASS));
 
     M_define("IDENTIFIER", "'[_a-zA-Z]' '[_a-zA-Z0-9]'*",
-            [](std::string const& lexeme)
-            { return Token(TOK_IDENTIFIER, lexeme); });
+            [&](std::string const& lexeme)
+            {
+                Symtab::FindResult res;
+                if (M_scope() && M_scope()->find(lexeme, &res))
+                {
+                    if (res.symbol->which() == Symbol::Package)
+                        return Token(TOK_PACKAGE, lexeme);
+                }
+
+                return Token(TOK_IDENTIFIER, lexeme);
+            });
 
     M_define("LIT_CHAR", "'\\'' '\\\\'? . '\\''",
             [](std::string const& lexeme)
@@ -677,7 +760,7 @@ void Parser::M_setupLexer()
             [](std::string const& lexeme)
             { return Token(TOK_LIT_STRING, lexeme); });
 
-    M_define("LIT_INTEGER", "('-'? '[0-9]'+) | ((\"0x\" | \"0X\") '[0-9a-fA-F]'+) | ('-'? '0' '[0-7]'+) | ((\"0b\" | \"0B\") '[0-1]'+)",
+    M_define("LIT_INTEGER", "('[0-9]'+) | ((\"0x\" | \"0X\") '[0-9a-fA-F]'+) | ('-'? '0' '[0-7]'+) | ((\"0b\" | \"0B\") '[0-1]'+)",
             [](std::string const& lexeme)
             {
                 const char* start = lexeme.c_str();
@@ -736,15 +819,15 @@ void Parser::M_setupLexer()
 
 void Parser::M_setupTokens()
 {
-    #define DEF_TOKEN(name) M_setTokenName(TOK_ ## name, #name);
-    #define DEF_ALIAS(name, alias) M_setTokenName(TOK_ ## name, #name);
+    #define DEF_TOKEN(name, printable, prefer_lexeme) M_setTokenName(TOK_ ## name, printable, prefer_lexeme);
+    #define DEF_ALIAS(name, alias)
     #include "lang/tokens.def"
     #undef DEF_ALIAS
     #undef DEF_TOKEN
 
-    M_setTokenName(Token::Invalid, "Invalid");
-    M_setTokenName(Token::Eof, "Eof");
-    M_setTokenName(Token::Skip, "Skip");
+    M_setTokenName(Token::Invalid, "invalid");
+    M_setTokenName(Token::Eof, "eof");
+    M_setTokenName(Token::Skip, "skip");
 }
 
 Node* Parser::M_check(Node* node)

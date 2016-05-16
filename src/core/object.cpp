@@ -189,11 +189,7 @@ Object Object::operator!=(Object const& other) const
     if (other.isNil() || isNil())
         return true;
 
-    Object morph = findPolymorphic(lang::std_nequals, { *this, other });
-    if (morph.isNil())
-        return !operator==(other);
-
-    return morph.invoke({ *this, other });
+    return invokePolymorphic(lang::std_nequals, { *this, other });
 }
 
 Object Object::operator&&(Object const& other) const
@@ -224,34 +220,19 @@ Object Object::operator<(Object const& other) const
 { return invokePolymorphic(lang::std_lt, { *this, other }); }
 
 Object Object::operator<=(Object const& other) const
-{
-    Object morph = findPolymorphic(lang::std_lte, { *this, other });
-    if (morph.isNil())
-        return operator<(other) || operator==(other);
-
-    return morph.invoke({ *this, other });
-}
+{ return invokePolymorphic(lang::std_lte, { *this, other }); }
 
 Object Object::operator>(Object const& other) const
-{
-    Object morph = findPolymorphic(lang::std_gte, { *this, other });
-    if (morph.isNil())
-        return !operator<(other);
-
-    return morph.invoke({ *this, other });
-}
+{ return invokePolymorphic(lang::std_gt, { *this, other }); }
 
 Object Object::operator>=(Object const& other) const
-{
-    Object morph = findPolymorphic(lang::std_gte, { *this, other });
-    if (morph.isNil())
-        return operator>(other) || operator==(other);
-
-    return morph.invoke({ *this, other });
-}
+{ return invokePolymorphic(lang::std_gte, { *this, other }); }
 
 Object::operator bool() const
 { return unwrap<bool>(); }
+
+std::string Object::serialize() const
+{ return invokeMember(lang::std_serialize, { *this }).unwrap<std::string>(); }
 
 Object const& Object::nil()
 {
@@ -265,7 +246,20 @@ Object const& Object::nil()
 
 void Object::setupBuiltinMembers(Object& obj)
 {
-    obj.newPolymorphic(lang::std_classname) = [](Object const& obj) { return obj.classname(); };
+    obj.newPolymorphic(lang::std_classname) = [](Object const& obj)
+                                              { return obj.classname(); };
+
+    obj.newPolymorphic(lang::std_lte)       = [](Object const& self, Object const& obj)
+                                              { return (self < obj) || (self == obj); };
+
+    obj.newPolymorphic(lang::std_gt)        = [](Object const& self, Object const& obj)
+                                              { return obj < self; };
+
+    obj.newPolymorphic(lang::std_gte)       = [](Object const& self, Object const& obj)
+                                              { return (self > obj) || (self == obj); };
+
+    obj.newPolymorphic(lang::std_nequals)   = [](Object const& self, Object const& obj)
+                                              { return self != obj; };
 }
 
 void Object::M_incref()

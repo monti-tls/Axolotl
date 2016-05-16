@@ -16,6 +16,8 @@
 
 #include "bits/opcodes.hpp"
 
+#include <map>
+
 namespace bits
 {
     std::string opcode_as_string(Opcode op)
@@ -40,5 +42,26 @@ namespace bits
         }
 
         return std::string("<INVALID>");
+    }
+
+    int opcode_nargs(Opcode op)
+    {
+        static std::map<Opcode, int> opcodes_nargs;
+        static bool opcodes_nargs_inited = false;
+
+        if (!opcodes_nargs_inited)
+        {   
+            #define OPCODE(name, nargs) opcodes_nargs[name] = nargs;
+            #include "bits/opcodes.def"
+            #undef OPCODE
+
+            opcodes_nargs_inited = true;
+        }
+
+        auto it = opcodes_nargs.find(op);
+        if (it == opcodes_nargs.end())
+            return -1;
+
+        return it->second;
     }
 }
