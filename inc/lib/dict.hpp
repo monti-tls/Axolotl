@@ -18,6 +18,7 @@
 #define __AXOLOTL_LIB_DICT_H__
 
 #include "core/core.hpp"
+#include "vm/forward.hpp"
 
 #include <map>
 
@@ -31,6 +32,7 @@ namespace lib
 
     public:
         static void record();
+        static vm::Module const& module();
 
     public:
         Dict();

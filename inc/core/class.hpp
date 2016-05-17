@@ -14,33 +14,38 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LIB_SCALARS_H__
-#define __AXOLOTL_LIB_SCALARS_H__
+#ifndef __AXOLOTL_CORE_CLASS_H__
+#define __AXOLOTL_CORE_CLASS_H__
 
-#include "core/core.hpp"
+#include "core/forward.hpp"
+#include "core/some.hpp"
 
 #include <string>
+#include <list>
 
-namespace lib
+namespace core
 {
-    class Scalars
+    class Class
     {
     public:
-        typedef bool Bool;
-        typedef int Int;
-        typedef char Char;
-        typedef std::string String;
-        typedef float Float;
+        typedef std::pair<std::string, Object> Member;
 
     public:
-        static void record();
+        Class(std::string const& classname = "");
+        ~Class();
 
-        static void recordBool();
-        static void recordInt();
-        static void recordChar();
-        static void recordString();
-        static void recordFloat();
+        std::string const& classname() const;
+        void addMember(std::string const& name, Object const& value);
+
+        Object construct(Some const& value = Some()) const;
+        Object unserialize(std::string const& serialized) const;
+
+        void finalizeObject(Object& self) const;
+
+    private:
+        std::string m_classname;
+        std::list<Member> m_members;
     };
 }
 
-#endif // __AXOLOTL_LIB_SCALARS_H__
+#endif // __AXOLOTL_CORE_CLASS_H__

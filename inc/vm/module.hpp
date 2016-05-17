@@ -34,8 +34,7 @@ namespace vm
     {
     public:
         Module();
-        Module(std::string const& name);
-        Module(std::string const& name, bits::Blob const& blob);
+        Module(std::string const& name, ImportTable* import_table = nullptr);
         Module(Module const& cpy);
         ~Module();
 
@@ -56,8 +55,14 @@ namespace vm
         void setEngine(Engine* engine);
         Engine* engine() const;
 
-        std::list<Module> const& imports() const;
-        Module import(std::string const& name, std::string const& mask = "", lang::Symtab* symtab = nullptr);
+        ImportTable* importTable();
+        ImportTable* detachImportTable();
+
+        void exportTo(Module& to, std::string const& mask = "", std::string const& alias = "",
+                      core::Object const& extra = core::Object::nil()) const;
+
+        bool initCalled() const;
+        void init();
 
     private:
         void M_incref();
@@ -76,7 +81,8 @@ namespace vm
             std::map<std::string, core::Object> globals;
             std::vector<core::Object> constants;
             Engine* engine;
-            std::list<Module> imports;
+            ImportTable* import_table;
+            bool init_called;
             int refcount;
         }* m_impl;
     };

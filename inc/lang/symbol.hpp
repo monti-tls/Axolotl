@@ -30,18 +30,19 @@ namespace lang
         {
             None,
             Package,
-            Auto,
+            Variable,
             Argument
         };
 
         enum Binding
         {
+            Auto,
             Global,
             Local
         };
 
     public:
-        Symbol(Which which = None, std::string const& name = "", core::Object const& data = core::Object::nil());
+        Symbol(Which which = None, Binding bindind = Auto, std::string const& name = "", core::Object const& data = core::Object::nil());
         ~Symbol();
 
         Which which() const;

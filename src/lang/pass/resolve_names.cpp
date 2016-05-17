@@ -12,11 +12,12 @@ ResolveNames::~ResolveNames()
 void ResolveNames::visit(NameNode* node)
 {
     Symtab::FindResult res;
-    if (node->symtab()->find(node->value, &res))
+    if (node->symtab()->find(node->value, &res) &&
+        !(res.symbol->binding() == Symbol::Local && res.locality != 0))
     {
         switch (res.symbol->which())
         {
-            case Symbol::Auto:
+            case Symbol::Variable:
             {
                 switch (res.symbol->binding())
                 {
@@ -33,9 +34,6 @@ void ResolveNames::visit(NameNode* node)
 
                     case Symbol::Local:
                     {
-                        if (res.locality != 0UL)
-                            break;
-                        
                         LocalRefNode* new_node = new LocalRefNode(node->startToken());
                         new_node->index = res.index - res.args_count;
 
@@ -54,9 +52,6 @@ void ResolveNames::visit(NameNode* node)
 
             case Symbol::Argument:
             {
-                if (res.locality != 0UL)
-                    break;
-
                 ConstRefNode* new_node = new ConstRefNode(node->startToken());
                 new_node->index = - (((int) res.index) + 1);
 

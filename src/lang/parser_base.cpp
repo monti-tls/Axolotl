@@ -29,14 +29,14 @@ std::string ParserBase::message(Token const& token, std::string const& msg)
     std::size_t pos;
     std::string line = m_lexer.snippet(token, pos);
 
-    if (pos)
-        --pos;
+    if (pos) --pos;
 
     if (line.size())
     {
-        std::string fmt = util::ansi::colors::RebeccaPurple;
+        std::string fmt = emph_color;
         line.insert(pos, fmt);
-        line.insert(pos + fmt.size() + token.lexeme().size(), util::ansi::clear);
+        std::size_t end = std::min(line.size()-1, pos + fmt.size() + token.lexeme().size());
+        line.insert(end, util::ansi::clear);
     }
 
     pos += 4;
@@ -44,7 +44,7 @@ std::string ParserBase::message(Token const& token, std::string const& msg)
 
     for (int i = 0; i < ((int) pos); ++i)
         ss << " ";
-    ss << util::ansi::colors::RebeccaPurple << "^";
+    ss << emph_color << "^";
 
     for (int i = 0; i < ((int) token.lexeme().size()) - 1; ++i)
         ss << "~";
@@ -56,7 +56,7 @@ std::string ParserBase::message(Token const& token, std::string const& msg)
 void ParserBase::error(Token const& token, std::string const& msg)
 {
     std::ostringstream ss;
-    ss << util::ansi::colors::Tomato << util::ansi::bold;
+    ss << error_color << util::ansi::bold;
     ss << "error: " << util::ansi::clear;
     ss << msg;
     throw std::runtime_error(message(token, ss.str()));
@@ -65,7 +65,7 @@ void ParserBase::error(Token const& token, std::string const& msg)
 void ParserBase::warning(Token const& token, std::string const& msg)
 {
     std::ostringstream ss;
-    ss << util::ansi::colors::Orange << util::ansi::bold;
+    ss << warning_color << util::ansi::bold;
     ss << "warning: " << util::ansi::clear;
     ss << msg;
 
@@ -135,9 +135,9 @@ Token ParserBase::M_eat(int which)
     {
         std::ostringstream ss;
         ss << "expecting ";
-        ss << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+        ss << util::ansi::bold << emph_color;
         ss << M_tokenName(which) << util::ansi::clear;
-        ss << ", got " << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+        ss << ", got " << util::ansi::bold << emph_color;
         ss << M_tokenName(M_peek()) << util::ansi::clear;
         error(M_peek(), ss.str());
     }
@@ -156,7 +156,7 @@ Token const& ParserBase::M_peek(std::size_t depth)
 void ParserBase::M_unexpected(Token const& token)
 {
     std::ostringstream ss;
-    ss << util::ansi::bold << util::ansi::colors::RebeccaPurple;
+    ss << util::ansi::bold << emph_color;
     ss << M_tokenName(token) << util::ansi::clear;
     error(token, "unexpected token " + ss.str());
 }

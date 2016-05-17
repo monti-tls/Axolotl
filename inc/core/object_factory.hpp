@@ -20,6 +20,7 @@
 #include "core/some.hpp"
 #include "core/object.hpp"
 #include "core/callable.hpp"
+#include "core/class.hpp"
 #include "lang/std_names.hpp"
 
 #include <string>
@@ -30,6 +31,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 namespace core
 {
@@ -53,7 +55,6 @@ namespace core
         friend void detail::ObjectFactory_fini();
         
     private:
-        typedef std::function<Object(Some const&)> Interface;
         typedef std::list<Object> ObjectList;
         typedef std::pair<std::string, Object> NamedObject;
         typedef std::list<NamedObject> NamedObjectList;
@@ -90,111 +91,155 @@ namespace core
         { return MethodListBuilder(); }
 
         template <typename T>
-        static void record(std::string const& name,
-                                 ConstructorListBuilder const& constructors,
-                                 MethodListBuilder const& methods)
+        static Class const& record(std::string const& name,
+                           ConstructorListBuilder const& constructors,
+                           MethodListBuilder const& methods)
         {
-            std::size_t type = typeId<T>();
-            m_impl->names[type] = name;
-            m_impl->constructors[type] = constructors.list;
-            m_impl->methods[type] = methods.named_list;
-            m_impl->interfaces[type] = [=](Some const& value) -> Object
-            {
-                Object object(Object::Kind::Scalar, value, name);
-                Object::setupBuiltinMembers(object);
-                for (auto method : methods.named_list)
-                    object.newPolymorphic(method.first) = method.second;
-                return object;
-            };
+            Class c(name);
+
+            for (auto const& m : constructors.list)
+                c.addMember(name, m);
+
+            for (auto const& m : methods.named_list)
+                c.addMember(m.first, m.second);
+
+            m_impl->classes[typeId<T>()] = c;
+
+            return m_impl->classes[typeId<T>()];
         }
 
-        template <typename T>
-        static void record(std::string const& name, std::function<Object(T)> const& iface)
+        static std::string typeName(std::size_t id)
         {
-            std::size_t type = typeId<T>();
-            m_impl->names[type] = name;
-            m_impl->interfaces[type] = [=](Some const& value) -> Object { return iface(const_cast<T&>(value.as<unqualified<T>>())); };
+            if (id == typeId<Object>())
+                return lang::std_any_type;
+
+            auto it = m_impl->classes.find(id);
+            if (it == m_impl->classes.end())
+                throw std::runtime_error("core::ObjectFactory::typeName: object type is not registered");
+
+            return it->second.classname();
         }
 
         template <typename T>
         static std::string typeName()
-        {
-            auto it = m_impl->names.find(typeId<T>());
-            if (it == m_impl->names.end())
-                throw std::runtime_error("core::ObjectFactory::typeName: object type is not registered");
-
-            return it->second;
-        }
+        { return typeName(typeId<T>()); }
 
         static std::size_t typeIdFromName(std::string const& classname)
         {
-            auto it = std::find_if(m_impl->names.begin(), m_impl->names.end(),
-                [=](std::pair<std::size_t, std::string> const& item) { return item.second == classname; });
-            if (it == m_impl->names.end())
+            auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
+            [=](std::pair<std::size_t, Class> const& item)
+            { return item.second.classname() == classname; });
+
+            if (it == m_impl->classes.end())
                 throw std::runtime_error("core::ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
             return it->first;
         }
 
-        static ObjectList const& typeConstructors(std::string const& classname)
-        { return m_impl->constructors[typeIdFromName(classname)]; }
-
-        static Object const& typeMethod(std::string const& classname, std::string const& name)
+        static Class const& typeClassFromName(std::string const& name)
         {
-            // Get typeId
-            std::size_t typeId = typeIdFromName(classname);
-
-            // Get method list
-            NamedObjectList const& methods = m_impl->methods[typeId];
-
-            // Check if method exists and if its not polymorphic
-            auto mpred = [=](NamedObject const& item) { return item.first == name; };
-            std::size_t count = std::count_if(methods.begin(), methods.end(), mpred);
-
-            if (!count)
-                throw std::runtime_error("core::ObjectFactory::typeMethod: method '" + name + "' in class '" + classname + "' does not exists");
-            else if (count > 1)
-                throw std::runtime_error("core::ObjectFactory::typeMethod: method '" + name + "' in class '" + classname + "' is polymorphic");
-
-            // Fetch the method (this is guaranteed to success because of the checks above)
-            return std::find_if(methods.begin(), methods.end(), mpred)->second;
+            return typeClass(typeIdFromName(name));
         }
 
-        static Object build(Object const& cpy)
-        { return cpy; }
-
-        //! Generic constructor
         template <typename T>
-        static Object build(T value, typename std::enable_if<not is_callable<T>::value>::type* dummy = nullptr)
+        static Class const& typeClass()
         {
-            std::map<std::size_t, Interface>::iterator it = m_impl->interfaces.find(typeId<T>());
-            if (it == m_impl->interfaces.end())
-                throw std::runtime_error("core::ObjectFactory::build: object type is not registered");
+            return typeClass(typeId<T>());
+        }
 
-            return it->second(Some(value));
+        static Class const& typeClass(std::size_t id)
+        {
+            auto it = m_impl->classes.find(id);
+            if (it == m_impl->classes.end())
+                throw std::runtime_error("core::ObjectFactory::typeClass: type is not registered");
+
+            return it->second;
+        }
+
+        static Object unserialize(std::string const& name, std::string const& serialized)
+        {
+            std::size_t id = typeIdFromName(name);
+            return m_impl->classes[id].unserialize(serialized);
+        }
+
+        //! Trivial constructor
+        static Object construct(Object const& cpy)
+        {
+            return cpy;
+        }
+
+        //! Generic constructor, without finalizer
+        template <typename T>
+        static Object construct(T value, typename std::enable_if<(not is_callable<T>::value) and (not has_finalizer<T>::value)>::type* dummy = nullptr)
+        {
+            return constructScalar<T>(std::forward<T>(value));
+        }
+
+        //! Generic constructor, with finalizer
+        template <typename T>
+        static Object construct(T value, typename std::enable_if<(not is_callable<T>::value) and has_finalizer<T>::value>::type* dummy = nullptr)
+        {
+            Object object = constructScalar<T>(std::forward<T>(value));
+            value.finalizeObject(object);
+            return object;
+        }
+
+        //! Generic scalar constructor
+        template <typename T>
+        static Object constructScalar(T value)
+        {
+            if (typeId<T>() == typeId<Object>())
+                return value;
+
+            std::map<std::size_t, Class>::iterator it = m_impl->classes.find(typeId<T>());
+            if (it == m_impl->classes.end())
+                throw std::runtime_error("core::ObjectFactory::construct: object type is not registered");
+
+            return it->second.construct(Some(value));
         }
 
         //! Direct function pointer
         template <typename TRet, typename... TArgs>
-        static Object build(TRet(*function_ptr)(TArgs...))
-        { return Object(Object::Kind::Callable, Callable(std::function<TRet(TArgs...)>(function_ptr)), lang::std_callable_classname); }
+        static Object construct(TRet(*function_ptr)(TArgs...))
+        {
+            return Object(Object::Kind::Callable, Callable(std::function<TRet(TArgs...)>(function_ptr)), lang::std_callable_classname);
+        }
+
+        //! Non-const member functions
+        template <typename T, typename TRet, typename... TArgs>
+        static Object construct(TRet(T::*member_ptr)(TArgs...))
+        {
+            auto proxy = [=](T& self, TArgs... args)
+            { return (self.*member_ptr)(args...); };
+            return construct(std::function<TRet(T&, TArgs...)>(proxy));
+        }
+
+        //! Const member functions
+        template <typename T, typename TRet, typename... TArgs>
+        static Object construct(TRet(T::*member_ptr)(TArgs...) const)
+        {
+            auto proxy = [=](T const& self, TArgs... args)
+            { return (self.*member_ptr)(args...); };
+            return construct(std::function<TRet(T const&, TArgs...)>(proxy));
+        }
 
         //! Functors and lambdas
         template <typename T>
-        static Object build(T const& callable, typename std::enable_if<is_callable<T>::value>::type* dummy = nullptr)
-        { return Object(Object::Kind::Callable, Callable(std::function<get_signature<T>>(callable)), lang::std_callable_classname); }
+        static Object construct(T const& callable, typename std::enable_if<is_callable<T>::value>::type* dummy = nullptr)
+        {
+            return Object(Object::Kind::Callable, Callable(std::function<get_signature<T>>(callable)), lang::std_callable_classname);
+        }
 
         //! Direct std::function use
         template <typename TRet, typename... TArgs>
-        static Object build(std::function<TRet(TArgs...)> const& fun)
-        { return Object(Object::Kind::Callable, Callable(fun), lang::std_callable_classname); }
+        static Object construct(std::function<TRet(TArgs...)> const& fun)
+        {
+            return Object(Object::Kind::Callable, Callable(fun), lang::std_callable_classname);
+        }
 
     private:
         static struct Impl
         {
-            std::map<std::size_t, Interface> interfaces;
-            std::map<std::size_t, std::string> names;
-            std::map<std::size_t, ObjectList> constructors;
-            std::map<std::size_t, NamedObjectList> methods;
+            std::map<std::size_t, Class> classes;
         }* m_impl;
     };
 }

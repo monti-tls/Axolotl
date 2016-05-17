@@ -17,6 +17,7 @@
 #include "vm/module.hpp"
 #include "vm/function.hpp"
 #include "vm/engine.hpp"
+#include "vm/import_table.hpp"
 #include "lang/std_names.hpp"
 #include "lang/lang.hpp"
 
@@ -31,22 +32,18 @@ Module::Module()
     : m_impl(nullptr)
 {}
 
-Module::Module(std::string const& name)
+Module::Module(std::string const& name, ImportTable* import_table)
     : m_impl(new Impl())
 {
     m_impl->refcount = 1;
     m_impl->name = name;
     m_impl->engine = nullptr;
-}
+    m_impl->init_called = false;
 
-Module::Module(std::string const& name, Blob const& blob)
-    : m_impl(new Impl())
-{
-    m_impl->refcount = 1;
-    m_impl->name = name;
-    m_impl->engine = nullptr;
-
-    setBlob(blob);
+    if (import_table)
+        m_impl->import_table = import_table;
+    else
+        m_impl->import_table = new ImportTable();
 }
 
 Module::Module(Module const& cpy)
@@ -61,6 +58,7 @@ Module& Module::operator=(Module const& cpy)
     M_decref();
     m_impl = cpy.m_impl;
     M_incref();
+    
     return *this;
 }
 
@@ -68,13 +66,26 @@ bool Module::operator==(Module const& other) const
 { return m_impl == other.m_impl; }
 
 std::string const& Module::name() const
-{ return m_impl->name; }
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::name: access to empty module");
+    
+    return m_impl->name;
+}
 
 Object& Module::global(std::string const& name)
-{ return m_impl->globals[name]; }
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::global: access to empty module");
+    
+    return m_impl->globals[name];
+}
 
 Object const& Module::global(std::string const& name) const
 {
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::global: access to empty module");
+    
     auto it = m_impl->globals.find(name);
     if (it == m_impl->globals.end())
         throw std::runtime_error("vm::Module::global: global '" + name + "' does not exists");
@@ -83,20 +94,29 @@ Object const& Module::global(std::string const& name) const
 
 int Module::addConstant(Object const& value)
 {
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::addConstant: access to empty module");
+    
     m_impl->constants.push_back(value);
     return (int) m_impl->constants.size() - 1;
 }
 
 Object const& Module::constant(int index) const
 {
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::constant: access to empty module");
+    
     if (index < 0 || index >= (int) m_impl->constants.size())
-        throw std::runtime_error("bm::Module::global: constant access out of bounds");
+        throw std::runtime_error("vm::Module::global: constant access out of bounds");
 
     return m_impl->constants[index];
 }
 
 void Module::setBlob(Blob const& blob)
 {
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::setBlob: access to empty module");
+    
     m_impl->blob = blob;
 
     M_processSymbols();
@@ -105,81 +125,110 @@ void Module::setBlob(Blob const& blob)
 }
 
 Blob const& Module::blob() const
-{ return m_impl->blob; }
-
-void Module::setEngine(Engine* engine)
-{ m_impl->engine = engine; }
-
-Engine* Module::engine() const
-{ return m_impl->engine; }
-
-std::list<Module> const& Module::imports() const
 {
-    if (m_impl->engine)
-        return m_impl->engine->imports();
-
-    return m_impl->imports;
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::blob: access to empty module");
+    
+    return m_impl->blob;
 }
 
-Module Module::import(std::string const& name, std::string const& mask, lang::Symtab* symtab)
+void Module::setEngine(Engine* engine)
 {
-    std::string file = name + ".xl";
-    std::ifstream ss(file);
-    if (!ss)
-        throw std::runtime_error("vm::Module::import: `" + file + "' not found");
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::setEngine: access to empty module");
+    
+    m_impl->engine = engine;
+}
 
-    Module module;
-    bool already_imported = false;
-    for (auto const& m : m_impl->imports)
-    {
-        if (m.name() == name)
-        {
-            module = m;
-            already_imported = true;
-            break;
-        }
-    }
+Engine* Module::engine() const
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::engine: access to empty module");
+    
+    return m_impl->engine;
+}
 
-    if (!already_imported)
-    {
-        module = Compiler(name, ss).compile();
-    }
+ImportTable* Module::importTable()
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::importTable: access to empty module");
+    
+    if (m_impl->import_table)
+        return m_impl->import_table;
+    else if (m_impl->engine)
+        return m_impl->engine->importTable();
 
-    for (auto it : module.m_impl->globals)
+    return nullptr;
+}
+
+ImportTable* Module::detachImportTable()
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::detachImportTable: access to empty module");
+    
+    ImportTable* table = m_impl->import_table;
+    m_impl->import_table = nullptr;
+    return table;
+}
+
+void Module::exportTo(Module& to, std::string const& mask, std::string const& alias, core::Object const& extra) const
+{
+    if (!m_impl || !to.m_impl)
+        throw std::runtime_error("vm::Module::exportTo: access to empty module");
+
+    if (to.m_impl == m_impl)
+        throw std::runtime_error("vm::Module::exportTo: can't export module to itself");
+
+    for (auto& it : m_impl->globals)
     {
-        std::string glob_name;
+        std::string sym_name = it.first;
+        std::string ext_name;
 
         if (it.first == std_main)
-            glob_name = name + "." + it.first;
+            ext_name = alias + "." + sym_name;
         else
         {
             if (mask == std_package_wildcard)
-                glob_name = it.first;
+                ext_name = sym_name;
             else if (!mask.size())
-                glob_name = name + "." + it.first;
+                ext_name = alias + "." + sym_name;
             else
             {
-                if (it.first != mask)
+                if (sym_name != mask)
                     continue;
 
-                glob_name = it.first;
+                ext_name = sym_name;
             }
         }
 
         // Don't check for clashes
-        m_impl->globals[glob_name] = it.second;
+        to.global(ext_name) = it.second;
 
-        if (symtab)
-        {
-            Symbol symbol(Symbol::Auto, glob_name);
-            // Don't check for clashes
-            symtab->add(symbol);
-        }
+        if (!extra.isNil())
+            extra(ext_name);
     }
+}
 
-    if (!m_impl->engine)
-        m_impl->imports.push_back(module);
-    return module;
+bool Module::initCalled() const
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::initCalled: access to empty module");
+
+    return m_impl->init_called;
+}
+
+void Module::init()
+{
+    if (!m_impl)
+        throw std::runtime_error("vm::Module::init: access to empty module");
+    
+    if (!initCalled())
+    {
+        auto it = m_impl->globals.find(std_main);
+        if (it != m_impl->globals.end())
+            it->second();
+        m_impl->init_called = true;
+    }
 }
 
 void Module::M_incref()
@@ -193,15 +242,14 @@ void Module::M_incref()
 
 void Module::M_decref()
 {
-    if (m_impl)
+    if (m_impl && !--m_impl->refcount)
     {
-        // std::cout << "[" << m_impl << "]-- " << m_impl->refcount-1 << std::endl;
+        // std::cout << "[" << m_impl << "]-- " << m_impl->refcount << std::endl;
 
-        if (!(--m_impl->refcount))
-        {
-            delete m_impl;
-            m_impl = nullptr;
-        }
+        if (m_impl->import_table)
+            delete m_impl->import_table;
+        delete m_impl;
+        m_impl = nullptr;
     }
 }
 
@@ -230,9 +278,9 @@ void Module::M_processTypeSpecs()
         std::string type_name;
         if (!m_impl->blob.string(tspec->ts_name, type_name))
             throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid type specification");
-        std::string iface_name = lang::std_iface_prefix + type_name;
 
-        std::vector<std::pair<std::string, Object>> members;
+        Class c(type_name);
+
         m_impl->blob.foreachTypeSpecSymbol(tidx, [&](blob_idx symidx)
         {
             blob_symbol* sym = m_impl->blob.symbol(symidx);
@@ -242,20 +290,13 @@ void Module::M_processTypeSpecs()
                 sym->s_type != BLOB_SYMT_METHOD)
                 throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid symbol");
 
-            members.push_back(std::make_pair(name, M_makeFunction(sym)));
+            c.addMember(name, M_makeFunction(sym));
         });
 
-        if (m_impl->globals.find(iface_name) != m_impl->globals.end())
-            throw std::runtime_error("vm::Module::M_processTypeSpecs: iface '" + iface_name + "' redefined");
+        if (m_impl->globals.find(type_name) != m_impl->globals.end())
+            throw std::runtime_error("vm::Module::M_processTypeSpecs: class '" + type_name + "' redefined");
 
-        m_impl->globals[iface_name] = std::function<Object()>([=]()
-        {
-            Object object(Object::Kind::Scalar, Some(), type_name);
-            Object::setupBuiltinMembers(object);
-            for (auto member : members)
-                object.member(member.first) = member.second;
-            return object;
-        });
+        m_impl->globals[type_name] = c;
     });
 }
 
@@ -271,7 +312,7 @@ void Module::M_processConstants()
         if (!m_impl->blob.string(cst->c_serialized, serialized))
             throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
         
-        addConstant(ObjectFactory::typeMethod(type, lang::std_unserialize).invoke({ serialized }));
+        addConstant(ObjectFactory::unserialize(type, serialized));
     });
 }
 

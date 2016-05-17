@@ -213,9 +213,9 @@ Token Lexer::getToken()
         // If no match, well, return an invalid token
         if (!match_list.size())
         {
-            M_resetBegin();
             Token token(Token::Invalid);
             token.setLexeme(M_getLexeme());
+            M_resetBegin();
             return M_setupToken(token);
         }
 

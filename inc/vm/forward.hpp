@@ -19,10 +19,12 @@
 
 namespace vm
 {
+    class ImportTable;
     class Module;
     class Function;
     class Engine;
     class StackFrame;
+    class Script;
 }
 
 #endif // __AXOLOTL_VM_FORWARD_H__

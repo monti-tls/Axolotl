@@ -18,6 +18,7 @@
 #define __AXOLOTL_LIB_LANG_H__
 
 #include "core/core.hpp"
+#include "vm/forward.hpp"
 
 #include <string>
 

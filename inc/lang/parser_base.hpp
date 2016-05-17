@@ -18,6 +18,7 @@
 #define __AXOLOTL_LANG_PARSER_BASE_H__
 
 #include "lang/lexer.hpp"
+#include "util/ansi.hpp"
 
 #include <string>
 #include <iostream>
@@ -27,6 +28,12 @@ namespace lang
 {
     class ParserBase
     {
+    public:
+        static constexpr auto error_color = util::ansi::colors::Tomato;
+        static constexpr auto warning_color = util::ansi::colors::Orange;
+        static constexpr auto note_color = util::ansi::colors::CornflowerBlue;
+        static constexpr auto emph_color = "";
+
     public:
         ParserBase(std::istream& in, std::size_t lookhead = 1, std::size_t lex_lookahead = 128);
         virtual ~ParserBase();

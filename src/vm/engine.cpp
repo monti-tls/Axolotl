@@ -32,9 +32,8 @@ Engine::Engine(Module const& main_module)
     , m_text(nullptr)
     , m_module(nullptr)
 {
-    m_imports = m_main_module.imports();
-    for (auto& module : m_imports)
-        module.setEngine(this);
+    m_import_table = m_main_module.detachImportTable();
+    m_import_table->setEngine(this);
 
     m_main_module.setEngine(this);
     M_changeModule(main_module);
@@ -44,13 +43,14 @@ Engine::Engine(Module const& main_module)
 
 Engine::~Engine()
 {
+    m_import_table->setEngine(nullptr);
+    m_main_module.setEngine(nullptr);
+
+    if (m_import_table)
+        delete m_import_table;
+
     if (m_module)
         delete m_module;
-
-    for (auto& module : m_imports)
-        module.setEngine(nullptr);
-
-    m_main_module.setEngine(nullptr);
 }
 
 Object Engine::execute(Function const& fun, std::vector<Object> const& args)
@@ -78,26 +78,8 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
     return ret;
 }
 
-std::list<Module> const& Engine::imports() const
-{ return m_imports; }
-
-bool Engine::hasImported(std::string const& name) const
-{
-    for (auto const& module : m_imports)
-        if (module.name() == name)
-            return true;
-
-    return false;
-}
-
-Module const& Engine::imported(std::string const& name) const
-{
-    for (auto const& module : m_imports)
-        if (module.name() == name)
-            return module;
-
-    throw std::runtime_error("vm::Engine::imported: module `" + name + "' has never been imported");
-}
+ImportTable* Engine::importTable() const
+{ return m_import_table; }
 
 void Engine::M_initOpcodes()
 {
@@ -246,7 +228,7 @@ bool Engine::M_execute()
             // Load a constant from the consts table
             if (index >= 0)
             {
-                M_push(m_module->constant(index));
+                M_push(m_module->constant(index).copy());
             }
             // Load an argument
             else
@@ -427,27 +409,50 @@ bool Engine::M_execute()
         }
 
         case IMPORT:
+        {
+            std::string name;
+            if (!m_module->blob().string(m_operands[0], name))
+                M_error("M_execute: invalid string index");
+
+            Module module;
+
+            if (!m_import_table->exists(name))
+            {
+                module = m_import_table->import(*m_module, name);
+                module.setEngine(this);
+            }
+            else
+                module = m_import_table->module(name);
+
+            if (!module.initCalled())
+                module.init();
+
+            break;
+        }
+
         case IMPORT_MASK:
         {
             std::string name;
             if (!m_module->blob().string(m_operands[0], name))
                 M_error("M_execute: invalid string index");
 
-            std::string mask = "";
-            if (m_ir == IMPORT_MASK)
-            {
-                if (!m_module->blob().string(m_operands[1], mask))
-                    M_error("M_execute: invalid string index");
-            }
+            std::string mask;
+            if (!m_module->blob().string(m_operands[1], mask))
+                M_error("M_execute: invalid string index");
 
-            if (!hasImported(name))
+            Module module;
+
+            if (!m_import_table->exists(name))
             {
-                Module module(m_module->import(name, mask));
+                module = m_import_table->importMask(*m_module, name, mask);
                 module.setEngine(this);
-                m_imports.push_back(module);
             }
+            else
+                module = m_import_table->module(name);
 
-            imported(name).global("__main__")();
+            if (!module.initCalled())
+                module.init();
+
             break;
         }
 

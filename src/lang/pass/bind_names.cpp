@@ -14,7 +14,7 @@ void BindNames::visit(AssignNode* node)
     NameNode* name = dynamic_cast<NameNode*>(node->siblings()[0]);
     if (name && !node->symtab()->find(name->value))
     {
-        Symbol symbol(Symbol::Auto, name->value);
+        Symbol symbol(Symbol::Variable, Symbol::Auto, name->value);
         node->symtab()->add(symbol);
     }
 

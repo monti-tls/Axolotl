@@ -3,9 +3,9 @@
 using namespace lang;
 using namespace core;
 
-Symbol::Symbol(Symbol::Which which, std::string const& name, Object const& data)
+Symbol::Symbol(Symbol::Which which, Symbol::Binding binding, std::string const& name, Object const& data)
     : m_which(which)
-    , m_binding(Symbol::Global)
+    , m_binding(binding)
     , m_name(name)
     , m_data(data)
 {}

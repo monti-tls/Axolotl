@@ -11,13 +11,22 @@ using namespace pass;
 using namespace bits;
 using namespace vm;
 
-Compiler::Compiler(std::string module_name, std::istream& in, Compiler::Flags flags, std::ostream& out)
+Compiler::Compiler(std::string module_name, std::istream& in, int flags, std::ostream& out)
     : m_in(in)
-    , m_flags(flags)
+    , m_flags((Compiler::Flags) flags)
     , m_out(out)
     , m_parser(nullptr)
     , m_root(nullptr)
     , m_module(module_name)
+{}
+
+Compiler::Compiler(Module const& module, std::istream& in, int flags, std::ostream& out)
+    : m_in(in)
+    , m_flags((Compiler::Flags) flags)
+    , m_out(out)
+    , m_parser(nullptr)
+    , m_root(nullptr)
+    , m_module(module)
 {}
 
 Compiler::~Compiler()
@@ -72,7 +81,7 @@ void Compiler::M_transformAST()
 {
     NodeVisitor::apply<ExprResultCheck>(m_root, m_parser);
     NodeVisitor::apply<ExtractMain>(m_root, m_parser);
-
+    NodeVisitor::apply<AddImplicitReturn>(m_root, m_parser);
     NodeVisitor::apply<BindNames>(m_root, m_parser);
     NodeVisitor::apply<ResolveNames>(m_root, m_parser);
     NodeVisitor::apply<ResolveConsts>(m_root, m_parser);

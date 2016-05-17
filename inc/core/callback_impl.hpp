@@ -32,7 +32,7 @@ namespace core
         std::vector<Object>& writeable = const_cast<std::vector<Object>&>(args);
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
 
-        return ObjectFactory::build(applyTuple(this->m_fun, tp));
+        return ObjectFactory::construct(applyTuple(this->m_fun, tp));
     }
 
     template <typename TRet, typename... TArgs>

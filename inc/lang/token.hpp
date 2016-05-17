@@ -37,7 +37,7 @@ namespace lang
         struct Where
         {
             std::size_t line = 1UL;
-            std::size_t col = 0UL;
+            std::size_t col = 1UL;
             std::string filename = "";
         };
 

@@ -142,6 +142,36 @@ namespace core
         >::type
     >::type {};
 
+    template <typename T>
+    class has_finalizer_impl
+    {
+    private:
+        typedef char(&yes)[1];
+        typedef char(&no)[2];
+
+        struct fallback { void finalizeObject(); };
+        struct derived : T, fallback {};
+
+        template <typename U, U> struct check;
+
+        template <typename>
+        static yes test(...);
+
+        template <typename C>
+        static no test(check<void (fallback::*)(), &C::finalizeObject>*);
+
+    public:
+        static constexpr bool value = sizeof(test<derived>(0)) == sizeof(yes);
+    };
+
+    template<typename T>
+    struct has_finalizer
+    : std::conditional<
+        std::is_class<T>::value,
+        has_finalizer_impl<T>,
+        std::false_type
+    >::type {};
+
     template<typename T> struct remove_class { using type = void; };
     template<typename C, typename R, typename... A>
     struct remove_class<R(C::*)(A...)> { using type = R(A...); };

@@ -17,9 +17,12 @@
 #ifndef __AXOLOTL_LIB_CORE_H__
 #define __AXOLOTL_LIB_CORE_H__
 
-#include "core/core.hpp"
+#include "core/forward.hpp"
+#include "core/some.hpp"
+#include "vm/forward.hpp"
 
 #include <string>
+#include <list>
 
 namespace lib
 {

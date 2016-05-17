@@ -18,6 +18,7 @@
 #define __AXOLOTL_VM_ENGINE_H__
 
 #include "vm/module.hpp"
+#include "vm/import_table.hpp"
 #include "vm/stack_frame.hpp"
 #include "core/object.hpp"
 
@@ -35,10 +36,7 @@ namespace vm
         ~Engine();
 
         core::Object execute(Function const& fun, std::vector<core::Object> const& args);
-
-        std::list<Module> const& imports() const;
-        bool hasImported(std::string const& name) const;
-        Module const& imported(std::string const& name) const;
+        ImportTable* importTable() const;
 
     private:
         void M_initOpcodes();
@@ -67,7 +65,7 @@ namespace vm
 
     private:
         Module m_main_module;
-        std::list<Module> m_imports;
+        ImportTable* m_import_table;
 
         std::vector<core::Object> m_stack;
         std::shared_ptr<bits::Buffer> m_text;

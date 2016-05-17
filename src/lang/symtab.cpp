@@ -20,7 +20,7 @@ bool Symtab::add(Symbol const& symbol, bool overwrite)
         return false;
 
     Symbol copy = symbol;
-    if (symbol.which() == Symbol::Auto)
+    if (symbol.binding() == Symbol::Auto)
         copy.setBinding(m_up ? Symbol::Local : Symbol::Global);
 
     m_symbols.push_back(copy);

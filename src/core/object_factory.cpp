@@ -10,7 +10,7 @@ namespace core
         static void __attribute__((constructor)) ObjectFactory_init()
         {
             ObjectFactory::m_impl = new ObjectFactory::Impl();
-            
+
             lib::recordAll();
         }
 

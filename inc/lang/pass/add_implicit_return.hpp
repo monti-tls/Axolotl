@@ -14,29 +14,29 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_PASS_FORWARD_H__
-#define __AXOLOTL_LANG_PASS_FORWARD_H__
+#ifndef __AXOLOTL_LANG_PASS_ADD_IMPLICIT_RETURN_H__
+#define __AXOLOTL_LANG_PASS_ADD_IMPLICIT_RETURN_H__
+
+#include "lang/forward.hpp"
+#include "lang/ast/node_visitor.hpp"
 
 namespace lang
 {
     namespace pass
     {
-        class PrettyPrint;
-        class ExtractMain;
-        class AddImplicitReturn;
-        class ExprResultCheck;
-        class BindNames;
-        class ResolveNames;
-        class ResolveConsts;
-        class GenerateRValue;
-        class GenerateLValue;
-        class GenerateIfElifElse;
-        class GenerateWhile;
-        class GenerateIR;
-        class RenameLabel;
-        class CleanLabels;
-        class ByteCodeBackend;
+        //! Stage   : AST -> AST
+        //! Modifies: some FunDecl nodes
+        //! This pass checks for function that does not explicitely
+        //!   returns and append Leave nodes to their body
+        class AddImplicitReturn : public ast::NodeVisitor
+        {
+        public:
+            using NodeVisitor::NodeVisitor;
+            ~AddImplicitReturn();
+
+            void visit(ast::FunDeclNode* node);
+        };
     }
 }
 
-#endif // __AXOLOTL_LANG_PASS_FORWARD_H__
+#endif // __AXOLOTL_LANG_PASS_ADD_IMPLICIT_RETURN_H__

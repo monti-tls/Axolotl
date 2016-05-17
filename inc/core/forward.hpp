@@ -23,6 +23,7 @@ namespace core
     class Callable;
     class Signature;
     class Object;
+    class Class;
 }
 
 #endif // __AXOLOTL_CORE_FORWARD_H__

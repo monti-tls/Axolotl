@@ -2,9 +2,10 @@
 #include "lang/std_names.hpp"
 #include "lang/symtab.hpp"
 #include "lib/dict.hpp"
+#include "vm/import_table.hpp"
 
 #include "lang/ast/ast.hpp"
-
+#include "util/ansi.hpp"
 #include "core/core.hpp"
 
 #include <algorithm>
@@ -522,7 +523,7 @@ void Parser::M_param_list_decl()
         }
     }
 
-    Symbol sym(Symbol::Argument, name.what().unwrap<std::string>(), pattern);
+    Symbol sym(Symbol::Argument, Symbol::Local, name.what().unwrap<std::string>(), pattern);
     if (!M_check(M_scope())->add(sym))
         error(name, "parameter name clash");
 
@@ -558,7 +559,7 @@ Node* Parser::M_fun_decl()
     node->attachSymtab(M_popScope());
 
     // Add the function to the current scope
-    Symbol symbol(Symbol::Auto, node->name);
+    Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
     if (!M_check(M_scope())->add(symbol))
         error(name, "redefining function");
 
@@ -577,7 +578,9 @@ Node* Parser::M_import_stmt()
 
     std::string name = name_token.what().unwrap<std::string>();
     bool masked = false;
+    bool aliased = false;
     std::string mask = "";
+    std::string alias = "";
 
     if (M_peek().which() == TOK_DOT)
     {
@@ -591,24 +594,48 @@ Node* Parser::M_import_stmt()
         }
         else
         {
-            Token token = M_eat(TOK_IDENTIFIER);
-            mask = token.what().unwrap<std::string>();
+            mask = M_eat(TOK_IDENTIFIER).what().unwrap<std::string>();
         }
+    }
+    else if (M_peek().which() == TOK_KW_AS)
+    {
+        aliased = true;
+        M_get();
+
+        alias = M_eat(TOK_IDENTIFIER).what().unwrap<std::string>();
     }
 
     // Setup the symbol right now because the lookahead
     //   might need it
-    Symbol symbol(Symbol::Package, name);
+    Symbol symbol(Symbol::Package, Symbol::Global, aliased ? alias : name);
     M_check(M_scope())->add(symbol);
 
     // Load the package right now also
     try
     {
-        m_module.import(name, mask, M_scope());
+        if (masked)
+            m_module.importTable()->importMask(m_module, name, mask);
+        else if (aliased)
+            m_module.importTable()->importAs(m_module, name, alias);
+        else
+            m_module.importTable()->import(m_module, name);
     }
     catch(std::exception const& exc)
     {
-        error(start_token, exc.what());
+        std::string desc = exc.what();
+
+        std::ostringstream ss;
+        ss << note_color << util::ansi::bold;
+        ss << "note: " << util::ansi::clear;
+        ss << "during import of package ";
+        ss << emph_color << util::ansi::bold;
+        ss << name << util::ansi::clear;
+        std::string top_err = message(start_token, ss.str());
+
+        ss.str("");
+        ss << desc << std::endl << top_err;
+
+        throw std::runtime_error(ss.str());
     }
 
     M_eat(TOK_SEMICOLON);
@@ -676,7 +703,9 @@ Node* Parser::M_stmt()
 Node* Parser::M_prog()
 {
     Symtab* symtab = M_pushScope();
-    symtab->add(Symbol(Symbol::Auto, std_const_dict, Dict()));
+    symtab->add(Symbol(Symbol::Variable, Symbol::Global, std_const_dict, Dict()));
+
+    m_module.importTable()->attachSymtab(M_scope());
 
     Node* node = nullptr;
     Node* last = nullptr;
@@ -696,6 +725,7 @@ Node* Parser::M_prog()
     prog->addSibling(node);
     prog->attachSymtab(M_popScope());
 
+    m_module.importTable()->detachSymtab();
     return prog;
 }
 
@@ -731,13 +761,14 @@ void Parser::M_setupLexer()
     M_define("ASSIGN",       "'='",     Token(TOK_ASSIGN));
 
     M_define("KW_IMPORT", "\"import\"", Token(TOK_KW_IMPORT));
-    M_define("KW_IF", "\"if\"",         Token(TOK_KW_IF));
-    M_define("KW_ELIF", "\"elif\"",     Token(TOK_KW_ELIF));
-    M_define("KW_ELSE", "\"else\"",     Token(TOK_KW_ELSE));
-    M_define("KW_WHILE", "\"while\"",   Token(TOK_KW_WHILE));
-    M_define("KW_FUN", "\"fun\"",       Token(TOK_KW_FUN));
+    M_define("KW_IF",     "\"if\"",     Token(TOK_KW_IF));
+    M_define("KW_ELIF",   "\"elif\"",   Token(TOK_KW_ELIF));
+    M_define("KW_ELSE",   "\"else\"",   Token(TOK_KW_ELSE));
+    M_define("KW_WHILE",  "\"while\"",  Token(TOK_KW_WHILE));
+    M_define("KW_FUN",    "\"fun\"",    Token(TOK_KW_FUN));
     M_define("KW_RETURN", "\"return\"", Token(TOK_KW_RETURN));
-    M_define("KW_CLASS", "\"class\"",   Token(TOK_KW_CLASS));
+    M_define("KW_CLASS",  "\"class\"",  Token(TOK_KW_CLASS));
+    M_define("KW_AS",     "\"as\"",     Token(TOK_KW_AS));
 
     M_define("IDENTIFIER", "'[_a-zA-Z]' '[_a-zA-Z0-9]'*",
             [&](std::string const& lexeme)

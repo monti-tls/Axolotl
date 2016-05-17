@@ -64,6 +64,14 @@ bool Object::isWeak() const
 Object Object::weakref() const
 { return Object(*this, true); }
 
+Object Object::copy() const
+{
+    Object cpy;
+    *cpy.m_impl = *m_impl;
+    cpy.m_impl->refcount = 1;
+    return cpy;
+}
+
 Object::Kind Object::kind() const
 { return m_impl->kind; }
 

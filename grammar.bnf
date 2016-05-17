@@ -50,6 +50,7 @@ KW_WHILE  := "while";
 KW_FUN    := "fun";
 KW_RETURN := "return";
 KW_CLASS  := "class";
+KW_AS     := "as";
 
 // Identifier tokens (context-dependent)
 IDENTIFIER,
@@ -240,7 +241,7 @@ fun_decl := KW_FUN IDENTIFIER
 //   import_stmt : import statement rule                 //
 ///////////////////////////////////////////////////////////
 
-import_stmt := KW_IMPORT IDENTIFIER (DOT (WILDCARD | IDENTIFIER));
+import_stmt := KW_IMPORT IDENTIFIER ((AS IDENTIFIER) | (DOT (WILDCARD | IDENTIFIER))?);
 
 ///////////////////////////////////////////////////////////
 // Top-level statement rule                              //

@@ -17,6 +17,7 @@
 #include "lang/pass/forward.hpp"
 #include "lang/pass/pretty_print.hpp"
 #include "lang/pass/extract_main.hpp"
+#include "lang/pass/add_implicit_return.hpp"
 #include "lang/pass/expr_result_check.hpp"
 #include "lang/pass/bind_names.hpp"
 #include "lang/pass/resolve_names.hpp"

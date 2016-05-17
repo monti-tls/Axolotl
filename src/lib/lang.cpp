@@ -1,6 +1,8 @@
 #include "lib/lang.hpp"
 #include "core/core.hpp"
+#include "vm/module.hpp"
 #include "lang/lang.hpp"
+#include "vm/import_table.hpp"
 
 using namespace lib;
 using namespace core;
@@ -9,7 +11,13 @@ using namespace vm;
 
 void Lang::record()
 {
-    ObjectFactory::record<Token>("Token",
+    Module this_module = Module("lang");
+
+    ImportTable::addBuiltin(this_module);
+
+    this_module.global(std_main) = [](){};
+    
+    this_module.global("Token") = ObjectFactory::record<Token>("Token",
         ObjectFactory::constructorList()
         ([](int which, Object const& what) { return Token(which, what); }),
         ObjectFactory::methodList()

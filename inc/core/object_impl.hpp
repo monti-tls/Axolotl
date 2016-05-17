@@ -23,10 +23,10 @@
 
 namespace core
 {
-	template <typename T>
-	Object::Object(T value)
+    template <typename T>
+    Object::Object(T value)
         : m_impl(nullptr)
-	{ *this = ObjectFactory::build(value); }
+    { *this = ObjectFactory::construct(value); }
 
     template <typename T>
     T& Object::unwrap()

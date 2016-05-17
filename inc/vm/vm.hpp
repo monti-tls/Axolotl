@@ -15,7 +15,9 @@
  */
 
 #include "vm/forward.hpp"
+#include "vm/import_table.hpp"
 #include "vm/module.hpp"
 #include "vm/function.hpp"
 #include "vm/engine.hpp"
 #include "vm/stack_frame.hpp"
+#include "vm/script.hpp"

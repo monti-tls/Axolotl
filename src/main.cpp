@@ -24,16 +24,59 @@ using namespace nfa;
 using namespace ast;
 using namespace lib;
 
+class YoloModulo
+{
+public:
+    YoloModulo(int a)
+        : m_a(a)
+    {
+        std::cout << "ctor(" << a << ")" << std::endl;
+    }
+
+    YoloModulo(YoloModulo const& cpy)
+    {
+        std::cout << "copy ctor" << std::endl;
+        m_a = cpy.m_a;
+    }
+
+    ~YoloModulo()
+    {}
+
+    int getA()
+    { return m_a; }
+
+    YoloModulo doubled()
+    { return YoloModulo(2 * m_a); }
+
+private:
+    int m_a;
+};
+
 int main()
 {
-    std::ifstream ss("./sample.xl");
-    Compiler* compiler = new Compiler("main", ss);
-    Module module(compiler->compile());
-    delete compiler;
+    try
+    {
+        Module module("my");
+        module.global("YoloModulo") = ObjectFactory::record<YoloModulo>(
+            "YoloModulo",
+            ObjectFactory::constructorList()
+            ([](int a) { return YoloModulo(a); }),
+            ObjectFactory::methodList()
+            ("getA", &YoloModulo::getA)
+            ("doubled", &YoloModulo::doubled));
 
-    Engine engine(module);
+        Script script;
+        script.addModule(module);
+        script.fromFile("./sample.xl");
 
-    std::cout << "__main__() = " << module.global("__main__")().unwrap<int>() << std::endl;
+        Object obj = script.run("__main__");
+        std::cout << obj.unwrap<int>() << std::endl;
+    }
+    catch (std::exception const& exc)
+    {
+        std::cerr << exc.what() << std::endl;
+        return -1;
+    }
 
     return 0;
 }

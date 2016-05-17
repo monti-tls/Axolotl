@@ -35,6 +35,7 @@ DEF_TOKEN(KW_WHILE,    "while", false)
 DEF_TOKEN(KW_FUN,      "fun", false)
 DEF_TOKEN(KW_RETURN,   "return", false)
 DEF_TOKEN(KW_CLASS,    "class", false)
+DEF_TOKEN(KW_AS,       "as", false)
 
 DEF_TOKEN(IDENTIFIER,  "identifier", true)
 DEF_TOKEN(PACKAGE,     "package", true)

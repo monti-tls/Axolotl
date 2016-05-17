@@ -39,8 +39,10 @@ namespace core
         Object();
         Object(Object const& cpy);
         Object(Object const& cpy, bool weaken);
+
         template <typename T>
         Object(T value);
+
         Object(Kind kind, Some meta, std::string const& classname);
         ~Object();
 
@@ -48,6 +50,7 @@ namespace core
 
         bool isWeak() const;
         Object weakref() const;
+        Object copy() const;
 
         Kind kind() const;
         Some const& meta() const;

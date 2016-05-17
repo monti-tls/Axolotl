@@ -17,8 +17,7 @@ void Dict::record()
                 return (Object) it->second;
             return Object::nil();
         })
-        ("insert",        [](Dict& dict, Object const& key, Object const& value)
-        { dict.set(key, value); }));
+        ("set", &Dict::set));
 }
 
 Dict::Dict()

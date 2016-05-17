@@ -1,5 +1,6 @@
-import math;
+import core as core;
+import my;
 
-whatever = math.factorial;
+yolo = my.YoloModulo(5);
 
-return whatever(6);
+return yolo.getA();
