@@ -530,18 +530,23 @@ void Parser::M_param_list_decl()
         Symtab::FindResult res;
         bool ok = false;
 
-        if (M_scope()->find(pattern, &res))
+        Symtab* scope = M_scope();
+        do
         {
-            if (res.symbol->binding() == Symbol::Global)
+            if (scope->find(pattern, &res))
             {
-                core::Object const& c = m_module.global(pattern);
-                if (c.meta().is<core::Class>())
+                if (res.symbol->binding() == Symbol::Global)
                 {
-                    id = c.unwrap<core::Class>().classid();
-                    ok = true;
+                    core::Object const& c = m_module.global(pattern);
+                    if (c.meta().is<core::Class>())
+                    {
+                        id = c.unwrap<core::Class>().classid();
+                        ok = true;
+                        break;
+                    }
                 }
             }
-        }
+        } while ((scope = scope->up()));
 
         if (!ok)
             error(pattern_token, "invalid class pattern");
@@ -593,7 +598,7 @@ Node* Parser::M_fun_decl(bool in_class)
 
     // Add the function to the current scope
     Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
-    if (!M_check(M_scope())->add(symbol))
+    if (!M_check(M_scope())->add(symbol, in_class ? true : false))
         error(name, "name clash");
 
     return node;
@@ -604,7 +609,19 @@ Node* Parser::M_class_decl()
     Token start_token = M_eat(TOK_KW_CLASS);
     Token name = M_eat(TOK_IDENTIFIER);
 
+    std::string classname = name.what().unwrap<std::string>();
+
+    // Add the class to the current scope
+    Symbol symbol(Symbol::Variable, Symbol::Auto, classname);
+    if (!M_check(M_scope())->add(symbol))
+        error(name, "name clash");
+
     M_pushScope();
+
+    // Setup a bare class global here to allow the use
+    //   of polymorphic patterns
+    // vm::Module
+    m_module.global(classname) = core::Class(classname, m_module.name());
 
     M_eat(TOK_LCURL);
 
@@ -626,11 +643,6 @@ Node* Parser::M_class_decl()
     node->name = name.what().unwrap<std::string>();
     node->addSibling(body);
     node->attachSymtab(M_popScope());
-
-    // Add the function to the current scope
-    Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
-    if (!M_check(M_scope())->add(symbol))
-        error(name, "name clash");
 
     return node;
 }
@@ -775,8 +787,7 @@ Node* Parser::M_stmt()
 
 Node* Parser::M_prog()
 {
-    Symtab* symtab = M_pushScope();
-    symtab->add(Symbol(Symbol::Variable, Symbol::Global, std_const_dict, Dict()));
+    M_pushScope();
 
     m_module.importTable()->attachSymtab(M_scope());
 

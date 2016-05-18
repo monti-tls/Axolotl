@@ -175,7 +175,7 @@ void PrettyPrint::visit(ReturnNode* node)
 void PrettyPrint::visit(ImportNode* node)
 {
     M_indent();
-    m_os << "(Import: " << node->name << std::endl;
+    m_os << "(Import: " << node->name << ")";
 
     M_follow(node);
 }
@@ -183,7 +183,7 @@ void PrettyPrint::visit(ImportNode* node)
 void PrettyPrint::visit(ImportMaskNode* node)
 {
     M_indent();
-    m_os << "(ImportMask: " << node->name << "." << node->mask << std::endl;
+    m_os << "(ImportMask: " << node->name << "." << node->mask << ")";
 
     M_follow(node);
 }

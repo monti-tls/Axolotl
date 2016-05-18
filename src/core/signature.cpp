@@ -21,11 +21,20 @@ using namespace core;
 
 Signature::Signature(Signature::TypeList const& arguments, bool returns)
     : m_returns(returns)
+    , m_variadic(false)
     , m_arguments(arguments)
+{}
+
+Signature::Signature(bool returns)
+    : m_returns(returns)
+    , m_variadic(true)
 {}
 
 Signature::~Signature()
 {}
+
+bool Signature::variadic() const
+{ return m_variadic; }
 
 bool Signature::returns() const
 { return m_returns; }
@@ -35,6 +44,9 @@ Signature::TypeList const& Signature::arguments() const
 
 bool Signature::match(std::vector<Object> const& args) const
 {
+    if (m_variadic)
+        return true;
+
     if (args.size() != m_arguments.size())
         return false;
 

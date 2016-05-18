@@ -441,13 +441,8 @@ blob_constant* Blob::constant(blob_idx cstidx) const
     return (blob_constant*) data->raw(cstidx * sizeof(blob_constant), sizeof(blob_constant));
 }
 
-blob_constant* Blob::addConstant(std::string const& type, std::string const& serialized, blob_idx* cstidx)
+blob_constant* Blob::addConstant(blob_long classid, std::string const& serialized, blob_idx* cstidx)
 {
-    // First of all, allocate the string entries
-    blob_off type_off;
-    if (!addString(type, type_off))
-        return nullptr;
-
     blob_off serialized_off;
     if (!addString(serialized, serialized_off))
         return nullptr;
@@ -455,7 +450,7 @@ blob_constant* Blob::addConstant(std::string const& type, std::string const& ser
     blob_constant* already_there = nullptr;
     foreachConstant([&](blob_idx idx, blob_constant* cst)
     {
-        if (cst->c_type == type_off && cst->c_serialized == serialized_off)
+        if (cst->c_classid == classid && cst->c_serialized == serialized_off)
         {
             already_there = cst;
             if (cstidx)
@@ -484,7 +479,7 @@ blob_constant* Blob::addConstant(std::string const& type, std::string const& ser
         return nullptr;
 
     blob_constant* cst = (blob_constant*) data->raw(0, sizeof(blob_constant));
-    cst->c_type = type_off;
+    cst->c_classid = classid;
     cst->c_serialized = serialized_off;
 
     return cst;

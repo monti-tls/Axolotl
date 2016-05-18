@@ -31,7 +31,8 @@ namespace lang
             None,
             Package,
             Variable,
-            Argument
+            Argument,
+            Const
         };
 
         enum Binding

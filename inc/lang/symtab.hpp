@@ -43,6 +43,7 @@ namespace lang
         Symtab(Symtab* up = nullptr);
         ~Symtab();
 
+        Symtab* top() const;
         Symtab* up() const;
 
         bool add(Symbol const& symbol, bool overwrite = false);

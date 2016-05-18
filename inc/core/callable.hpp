@@ -55,9 +55,9 @@ namespace core
 
         //! Build a native callable object from a std::function
         template <typename TRet, typename... TArgs>
-        Callable(std::function<TRet(TArgs...)> const& fun)
+        Callable(std::function<TRet(TArgs...)> const& fun, bool variadic = false)
             : m_kind(Kind::Native)
-            , m_meta(NativeMetaType(new CallbackImpl<TRet, TArgs...>(fun)))
+            , m_meta(NativeMetaType(new CallbackImpl<TRet, TArgs...>(fun, variadic)))
         {}
 
         ~Callable();

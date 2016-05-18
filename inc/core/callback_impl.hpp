@@ -25,26 +25,37 @@ namespace core
 {
     template <typename TRet, typename... TArgs>
     Object CallbackImpl<TRet, TArgs...>::invoke(std::vector<Object> const& args)
-    {
-        if (sizeof...(TArgs) != args.size())
+    {   
+        std::vector<Object> writeable = const_cast<std::vector<Object>&>(args);
+
+        if (this->m_variadic)
+            writeable = { writeable };
+        else if (sizeof...(TArgs) != args.size())
             throw std::runtime_error("wrong number of arguments");
-        
-        std::vector<Object>& writeable = const_cast<std::vector<Object>&>(args);
+
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
         return ObjectFactory::construct(applyTuple(this->m_fun, tp));
     }
 
     template <typename TRet, typename... TArgs>
     Signature CallbackImpl<TRet, TArgs...>::signature() const
-    { return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), true); }
+    {
+        if (this->m_variadic)
+            return Signature(true);
+
+        return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), true);
+    }
 
     template <typename... TArgs>
     Object CallbackImpl<void, TArgs...>::invoke(std::vector<Object> const& args)
     {
-        if (sizeof...(TArgs) != args.size())
+        std::vector<Object> writeable = const_cast<std::vector<Object>&>(args);
+
+        if (this->m_variadic)
+            writeable = { writeable };
+        else  if (sizeof...(TArgs) != args.size())
             throw std::runtime_error("wrong number of arguments");
-        
-        std::vector<Object>& writeable = const_cast<std::vector<Object>&>(args);
+
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*) nullptr...);
         applyTuple(this->m_fun, tp);
 
@@ -53,7 +64,12 @@ namespace core
 
     template <typename... TArgs>
     Signature CallbackImpl<void, TArgs...>::signature() const
-    { return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), false); }
+    {
+        if (this->m_variadic)
+            return Signature(false);
+
+        return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), false);
+    }
 }
 
 #endif // __AXOLOTL_CORE_CALLBACK_IMPL_H__

@@ -47,8 +47,9 @@ namespace core
     class CallbackBase : public AbstractCallback
     {
     public:
-        CallbackBase(std::function<TRet(TArgs...)> const& fun)
+        CallbackBase(std::function<TRet(TArgs...)> const& fun, bool variadic = false)
             : m_fun(fun)
+            , m_variadic(variadic)
         {
         }
 
@@ -58,6 +59,7 @@ namespace core
 
     protected:
         std::function<TRet(TArgs...)> m_fun;
+        bool m_variadic;
     };
 
     template <typename TRet, typename... TArgs>

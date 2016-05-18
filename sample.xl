@@ -1,6 +1,55 @@
+import core;
 import my;
 
-fun foo(a)
-    return a + 2;
+class Foo
+{
+    fun Foo(a : core.int, b)
+    {
+        my.print("int ctor");
+        my.print(a);
+        my.print(b);
+        self.a = a;
+    }
 
-my.print(foo(8));
+    fun Foo(a : core.string, b)
+    {
+        my.print("string ctor");
+        my.print(a);
+        my.print(b);
+        self.a = a;
+    }
+
+    fun polymorphic(a)
+        my.print("default version");
+
+    fun polymorphic(a : core.int)
+    {
+        my.print("int version");
+        my.print(a);
+    }
+
+    fun polymorphic(a : core.string)
+    {
+        my.print("string version");
+        my.print(a);
+    }
+
+    fun polymorphic(a : Foo)
+    {
+        my.print("Foo version");
+    }
+
+    fun __serialize__()
+        return "";
+};
+
+a = Foo(1, 2);
+b = Foo("4", 8);
+// a.polymorphic(8);
+// a.polymorphic("8");
+// a.polymorphic(a);
+
+// default == and < operators w/ serialize + classid
+// store constants by classid (not by classname)
+// problem w/ ctor wrapper (takes precedency over overloaded ctors)
+//   -> setup a single variadic __call__(...) that chooses polymorphically the ctor itself

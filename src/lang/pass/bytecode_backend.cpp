@@ -36,27 +36,14 @@ Blob const& ByteCodeBackend::blob() const
 
 void ByteCodeBackend::visit(IR_ProgNode* node)
 {
-    // Get the const dict
-    Symtab::FindResult res;
-    node->symtab()->find(std_const_dict, &res);
-    Dict const& const_dict = res.symbol->data().unwrap<Dict>();
-
-    // Turn it into a vector
-    std::vector<std::pair<int, Object>> const_array;
-    std::transform(const_dict.begin(), const_dict.end(), std::back_inserter(const_array),
-                   [](std::pair<Object, Object> it)
-                   { return std::make_pair(it.second.unwrap<int>(), it.first); });
-
-    // Sort the vector according to the indices
-    std::sort(const_array.begin(), const_array.end(),
-              [](std::pair<int, Object> const& a, std::pair<int, Object> const& b)
-              { return a.first < b.first; });
-
-    // Finally insert all constants in the blob
-    for (auto it = const_array.begin(); it != const_array.end(); ++it)
+    Symtab* top = node->symtab()->top();
+    for (auto it = top->begin(); it != top->end(); ++it)
     {
-        if (!m_blob.addConstant(it->second.classname(), it->second.serialize()))
-            M_error(node, "internal error: unable to add constant entry to blob");
+        if (it->which() == Symbol::Const)
+        {
+            if (!m_blob.addConstant(it->data().classid(), it->data().serialize()))
+                M_error(node, "internal error: unable to add constant entry to blob");
+        }
     }
 
     // Generate bytecode for the whole program

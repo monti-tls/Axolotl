@@ -151,8 +151,8 @@ namespace bits
     //! Constant entry
     struct __attribute__((packed)) blob_constant
     {
-        //! Type name as a string table entry offset
-        blob_off c_type;
+        //! Class identifier of the constant data
+        blob_long c_classid;
         //! Serialized data as a string table entry offset
         blob_off c_serialized;
     };
@@ -282,7 +282,7 @@ namespace bits
 
         //! Add an argument entry to a symbol signature entry
         //! \param sigidx The index of the symbol signature to modify
-        //! \param type The name of the type of the new argument to add
+        //! \param classid The id of the type of the new argument to add
         //! \return true if success, false otherwise
         bool addSignatureArgument(blob_idx sigidx, blob_long classid);
 
@@ -292,11 +292,11 @@ namespace bits
         blob_constant* constant(blob_idx cstidx) const;
 
         //! Add a new constant entry in the constant data section
-        //! \param type Name of the type of the new constant entry
+        //! \param classid Id of the type of the new constant entry
         //! \param serialized The constant data to insert in serialized form
         //! \param cstidx Optional output parameter for the index of the added constant entry
         //! \return The added constant entry if success, 0 otherwise
-        blob_constant* addConstant(std::string const& type, std::string const& serialized, blob_idx* cstidx = nullptr);
+        blob_constant* addConstant(blob_long classid, std::string const& serialized, blob_idx* cstidx = nullptr);
 
         //! Sets the TEXT section contents wich the given buffer
         //! \param buffer The buffer to fill the TEXT section with

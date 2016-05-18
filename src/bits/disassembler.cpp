@@ -108,7 +108,7 @@ void Disassembler::dumpConstants()
     m_blob.foreachConstant([&](blob_idx cstidx, blob_constant* cst)
     {
         m_os << "  [" << std::setw(4) << cstidx << "] ";
-        m_os << std::setw(8) << std::left << m_blob.string(cst->c_type) << std::right << " ";
+        m_os << std::setw(16) << std::left << std::hex << cst->c_classid << std::right << " ";
         m_os << '\'' << m_blob.string(cst->c_serialized) << '\'' << std::endl;
     });
 }
@@ -236,7 +236,7 @@ void Disassembler::dumpText()
                     if (!cst)
                         m_os << "<invalid>";
                     else
-                        m_os << "(" << m_blob.string(cst->c_type) << ") '" << m_blob.string(cst->c_serialized) << "'";
+                        m_os << "(" << std::setw(16) << std::hex << cst->c_classid << ") '" << m_blob.string(cst->c_serialized) << "'";
                 }
                 break;
             }

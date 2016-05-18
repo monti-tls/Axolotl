@@ -140,20 +140,31 @@ namespace core
         static Class::ClassId typeClassId()
         { return typeClassId(typeId<T>()); }
 
-        static std::size_t typeIdFromName(std::string const& classname)
+        static std::size_t typeIdFromClassName(std::string const& classname)
         {
             auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
             [=](std::pair<std::size_t, Class> const& item)
             { return item.second.classname() == classname; });
 
             if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
+                throw std::runtime_error("ObjectFactory::typeIdFromClassName: type '" + classname + "' does not exists");
+            return it->first;
+        }
+
+        static std::size_t typeIdFromClassId(Class::ClassId classid)
+        {
+            auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
+            [=](std::pair<std::size_t, Class> const& item)
+            { return item.second.classid() == classid; });
+
+            if (it == m_impl->classes.end())
+                throw std::runtime_error("ObjectFactory::typeIdFromClassId: type does not exists");
             return it->first;
         }
 
         static Class const& typeClassFromName(std::string const& name)
         {
-            return typeClass(typeIdFromName(name));
+            return typeClass(typeIdFromClassName(name));
         }
 
         template <typename T>
@@ -171,9 +182,15 @@ namespace core
             return it->second;
         }
 
-        static Object unserialize(std::string const& name, std::string const& serialized)
+        static Object unserialize(std::string const& classname, std::string const& serialized)
         {
-            std::size_t id = typeIdFromName(name);
+            std::size_t id = typeIdFromClassName(classname);
+            return m_impl->classes[id].unserialize(serialized);
+        }
+
+        static Object unserialize(Class::ClassId classid, std::string const& serialized)
+        {
+            std::size_t id = typeIdFromClassId(classid);
             return m_impl->classes[id].unserialize(serialized);
         }
 

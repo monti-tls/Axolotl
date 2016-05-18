@@ -26,7 +26,6 @@ namespace lang
 
     constexpr auto std_callable_classname = "@callable";
     constexpr auto std_nil_classname = "@nil";
-    constexpr auto std_const_dict  = "@consts";
     constexpr auto std_any_type    = "*";
     constexpr auto std_package_wildcard = "*";
 

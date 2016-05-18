@@ -308,10 +308,7 @@ void Module::M_processTypeSpecs()
 
             c.addMember(name, M_makeFunction(sym));
         });
-
-        if (m_impl->globals.find(type_name) != m_impl->globals.end())
-            throw std::runtime_error("vm::Module::M_processTypeSpecs: class '" + type_name + "' redefined");
-
+        
         m_impl->globals[type_name] = c;
     });
 }
@@ -320,15 +317,11 @@ void Module::M_processConstants()
 {
     m_impl->blob.foreachConstant([&](blob_idx, blob_constant* cst)
     {
-        std::string type;
-        if (!m_impl->blob.string(cst->c_type, type))
-            throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
-
         std::string serialized;
         if (!m_impl->blob.string(cst->c_serialized, serialized))
             throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
         
-        addConstant(ObjectFactory::unserialize(type, serialized));
+        addConstant(ObjectFactory::unserialize(cst->c_classid, serialized));
     });
 }
 

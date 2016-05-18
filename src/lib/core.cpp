@@ -25,6 +25,10 @@ void Core::record()
         ("classname",   &Class::classname)
         ("unserialize", &Class::unserialize));
 
+    this_module.global("list") = ObjectFactory::record<std::vector<Object>>("core", "list",
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList());
+
     this_module.global("bool") = ObjectFactory::record<bool>("core", "bool",
         ObjectFactory::constructorList()
         ([](bool a) { return a; }),

@@ -157,16 +157,14 @@ void Node::exchangeWith(Node* node)
 
     m_parent = nullptr;
     m_symtab = nullptr;
-
-    Node*& last = node->M_last();
-
+    
     if (m_prev)
         m_prev->m_next = node;
     if (m_next)
-        m_next->m_prev = last;
+        m_next->m_prev = node->last();
 
     node->m_prev = m_prev;
-    last = m_next;
+    node->M_last() = m_next;
 
     m_next = nullptr;
     m_prev = nullptr;

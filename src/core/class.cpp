@@ -66,21 +66,16 @@ void Class::finalizeObject(Object& self) const
     for (auto m : m_members)
         self.newPolymorphic(m.first) = m.second;
 
-    for (auto m : m_members)
+    Class thisclass = *this;
+    auto proxy = [=](std::vector<Object> o)
     {
-        if (m.first == m_classname)
-        {
-            Class thisclass = *this;
-            auto proxy = [=](Object const& o)
-            {
-                Object self = thisclass.construct();
-                m.second(self, o);
-                return self;
-            };
+        Object self = thisclass.construct();
+        o.insert(o.begin(), self);
+        self.invokePolymorphic(thisclass.classname(), o);
+        return self;
+    };
 
-            self.newPolymorphic(lang::std_call) = proxy;
-        }
-    }
+    self.newPolymorphic(lang::std_call) = ObjectFactory::constructCallable(Callable(std::function<Object(std::vector<Object>)>(proxy), true));
 
     // No constructors were provided
     if (!self.has(lang::std_call))

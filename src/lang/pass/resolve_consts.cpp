@@ -16,21 +16,31 @@ void ResolveConsts::init()
 
 void ResolveConsts::visit(ConstNode* node)
 {
-    Symtab::FindResult res;
-    node->symtab()->find(std_const_dict, &res);
+    Symtab* top = node->symtab()->top();
 
-    Dict& const_dict = res.symbol->data().unwrap<Dict>();
-
+    bool found = false;
     int index = 0;
+    for (auto it = top->begin(); it != top->end(); ++it)
+    {
+        if (it->which() == Symbol::Const)
+        {
+            if (it->data().classid() == node->value.classid() &&
+                it->data().serialize() == node->value.serialize())
+            {
+                found = true;
+                break;
+            }
 
-    Dict::const_iterator it = const_dict.find(node->value);
-    if (it == const_dict.end())
+            ++index;
+        }
+    }
+
+    if (!found)
     {
         index = m_alloc_index++;
-        const_dict.set(node->value, index);
+        Symbol sym(Symbol::Const, Symbol::Global, "", node->value);
+        top->add(sym);
     }
-    else
-        index = it->second.unwrap<int>();
 
     ConstRefNode* new_node = new ConstRefNode(node->startToken());
     new_node->index = index;

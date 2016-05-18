@@ -11,14 +11,30 @@ Symtab::Symtab(Symtab* up)
 Symtab::~Symtab()
 {}
 
+Symtab* Symtab::top() const
+{
+    if (m_up)
+        return m_up->top();
+
+    return const_cast<Symtab*>(this);
+}
+
 Symtab* Symtab::up() const
 { return m_up; }
 
 bool Symtab::add(Symbol const& symbol, bool overwrite)
 {
+    if (symbol.which() == Symbol::Const)
+    {
+        if (m_up)
+            return m_up->add(symbol, overwrite);
+        else
+            overwrite = true;
+    }
+
     if (!overwrite && M_find(symbol.name()) != m_symbols.end())
         return false;
-
+    
     Symbol copy = symbol;
     if (symbol.binding() == Symbol::Auto)
         copy.setBinding(m_up ? Symbol::Local : Symbol::Global);

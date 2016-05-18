@@ -2,6 +2,8 @@
 #include "lang/ast/node.hpp"
 #include "lang/ast/node_visitor.hpp"
 
+#include "lang/ast/ast.hpp"
+
 using namespace lang;
 using namespace ast;
 using namespace pass;
@@ -40,7 +42,8 @@ void GenerateRValue::visit(InvokeNode* node)
     int argc = 0;
     if (node->siblings().size() > 1)
     {
-        node->siblings()[1]->accept(this);
+        // Avoid the nofollow flag for argument lists
+        M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
         argc = (int) node->siblings()[1]->chainLength();
     }
 
@@ -69,7 +72,8 @@ void GenerateRValue::visit(MethodNode* node)
     int argc = 0;
     if (node->siblings().size() > 1)
     {
-        node->siblings()[1]->accept(this);
+        // Avoid the nofollow flag for argument lists
+        M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
         argc = (int) node->siblings()[1]->chainLength();
     }
 

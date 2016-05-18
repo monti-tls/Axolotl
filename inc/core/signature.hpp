@@ -33,14 +33,18 @@ namespace core
     public:
         //! \param returns Only meaningful for C++ functions that can return void
         Signature(TypeList const& arguments, bool returns = false);
+        //! Create a variadic signature
+        Signature(bool returns = false);
         ~Signature();
 
         bool returns() const;
+        bool variadic() const;
         TypeList const& arguments() const;
         bool match(std::vector<Object> const& args) const;
 
     private:
         bool m_returns;
+        bool m_variadic;
         TypeList m_arguments;
     };
 }

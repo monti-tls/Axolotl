@@ -110,13 +110,16 @@ Object const& Object::findPolymorphic(std::string const& id, std::vector<Object>
 {
     auto range = m_impl->members.equal_range(id);
 
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = --range.second; ; --it)
     {
         Object& obj = it->second;
         if (!obj.isCallable())
             throw std::runtime_error("core::Object::findPolymorphic: polymorphic member is not callable");
         if (obj.unwrap<Callable>().signature().match(args))
             return obj;
+
+        if (it == range.first)
+            break;
     }
 
     return nil();
@@ -263,6 +266,20 @@ void Object::setupBuiltinMembers(Object& obj)
 
     obj.newPolymorphic(lang::std_classid)   = [](Object const& obj)
                                               { return obj.classid(); };
+
+    obj.newPolymorphic(lang::std_equals) =
+    [](Object const& self, Object const& obj)
+    {
+        if (self.classname() != obj.classname())
+            return false;
+        return self.serialize() == obj.serialize();
+    };
+
+    obj.newPolymorphic(lang::std_lt) =
+    [](Object const& self, Object const& obj)
+    {
+        return (self.classname() + self.serialize()) < (obj.classname() + obj.serialize());
+    };
 
     obj.newPolymorphic(lang::std_lte)       = [](Object const& self, Object const& obj)
                                               { return (self < obj) || (self == obj); };
