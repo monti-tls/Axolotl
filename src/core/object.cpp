@@ -33,13 +33,14 @@ Object::Object(Object const& cpy, bool weaken)
     M_incref();
 }
 
-Object::Object(Object::Kind kind, Some meta, std::string const& classname)
+Object::Object(Object::Kind kind, Some&& meta, std::string const& classname, Class::ClassId classid)
     : m_weak(false)
     , m_impl(new Impl())
 {
     m_impl->kind = kind;
-    m_impl->meta = meta;
+    m_impl->meta = std::move(meta);
     m_impl->classname = classname;
+    m_impl->classid = classid;
     m_impl->refcount = 1;
 }
 
@@ -92,6 +93,9 @@ bool Object::isNil() const
 
 std::string Object::classname() const
 { return m_impl->classname; }
+
+Class::ClassId Object::classid() const
+{ return m_impl->classid; }
 
 bool Object::has(std::string const& id) const
 { return m_impl->members.count(id) >= 1; }
@@ -256,6 +260,9 @@ void Object::setupBuiltinMembers(Object& obj)
 {
     obj.newPolymorphic(lang::std_classname) = [](Object const& obj)
                                               { return obj.classname(); };
+
+    obj.newPolymorphic(lang::std_classid)   = [](Object const& obj)
+                                              { return obj.classid(); };
 
     obj.newPolymorphic(lang::std_lte)       = [](Object const& self, Object const& obj)
                                               { return (self < obj) || (self == obj); };

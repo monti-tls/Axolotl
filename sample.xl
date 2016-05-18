@@ -1,6 +1,6 @@
-import core as core;
 import my;
 
-yolo = my.YoloModulo(5);
+fun foo(a)
+    return a + 2;
 
-return yolo.getA();
+my.print(foo(8));

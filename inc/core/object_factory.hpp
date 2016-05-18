@@ -91,11 +91,11 @@ namespace core
         { return MethodListBuilder(); }
 
         template <typename T>
-        static Class const& record(std::string const& name,
+        static Class const& record(std::string const& module_name, std::string const& name,
                            ConstructorListBuilder const& constructors,
                            MethodListBuilder const& methods)
         {
-            Class c(name);
+            Class c(name, module_name);
 
             for (auto const& m : constructors.list)
                 c.addMember(name, m);
@@ -115,7 +115,7 @@ namespace core
 
             auto it = m_impl->classes.find(id);
             if (it == m_impl->classes.end())
-                throw std::runtime_error("core::ObjectFactory::typeName: object type is not registered");
+                throw std::runtime_error("ObjectFactory::typeName: object type is not registered");
 
             return it->second.classname();
         }
@@ -124,6 +124,22 @@ namespace core
         static std::string typeName()
         { return typeName(typeId<T>()); }
 
+        static Class::ClassId typeClassId(std::size_t id)
+        {
+            if (id == typeId<Object>())
+                return Class::AnyClassId;
+
+            auto it = m_impl->classes.find(id);
+            if (it == m_impl->classes.end())
+                throw std::runtime_error("ObjectFactory::typeClassId: object type is not registered");
+
+            return it->second.classid();
+        }
+
+        template <typename T>
+        static Class::ClassId typeClassId()
+        { return typeClassId(typeId<T>()); }
+
         static std::size_t typeIdFromName(std::string const& classname)
         {
             auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
@@ -131,7 +147,7 @@ namespace core
             { return item.second.classname() == classname; });
 
             if (it == m_impl->classes.end())
-                throw std::runtime_error("core::ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
+                throw std::runtime_error("ObjectFactory::typeIdFromName: type '" + classname + "' does not exists");
             return it->first;
         }
 
@@ -150,7 +166,7 @@ namespace core
         {
             auto it = m_impl->classes.find(id);
             if (it == m_impl->classes.end())
-                throw std::runtime_error("core::ObjectFactory::typeClass: type is not registered");
+                throw std::runtime_error("ObjectFactory::typeClass: type is not registered");
 
             return it->second;
         }
@@ -169,30 +185,30 @@ namespace core
 
         //! Generic constructor, without finalizer
         template <typename T>
-        static Object construct(T value, typename std::enable_if<(not is_callable<T>::value) and (not has_finalizer<T>::value)>::type* dummy = nullptr)
+        static Object construct(T const& value, typename std::enable_if<(not is_callable<T>::value) and (not has_finalizer<T>::value)>::type* dummy = nullptr)
         {
-            return constructScalar<T>(std::forward<T>(value));
+            return constructScalar<T>(value);
         }
 
         //! Generic constructor, with finalizer
         template <typename T>
-        static Object construct(T value, typename std::enable_if<(not is_callable<T>::value) and has_finalizer<T>::value>::type* dummy = nullptr)
+        static Object construct(T const& value, typename std::enable_if<(not is_callable<T>::value) and has_finalizer<T>::value>::type* dummy = nullptr)
         {
-            Object object = constructScalar<T>(std::forward<T>(value));
+            Object object = constructScalar<T>(value);
             value.finalizeObject(object);
             return object;
         }
 
         //! Generic scalar constructor
         template <typename T>
-        static Object constructScalar(T value)
+        static Object constructScalar(T const& value)
         {
             if (typeId<T>() == typeId<Object>())
                 return value;
 
             std::map<std::size_t, Class>::iterator it = m_impl->classes.find(typeId<T>());
             if (it == m_impl->classes.end())
-                throw std::runtime_error("core::ObjectFactory::construct: object type is not registered");
+                throw std::runtime_error("ObjectFactory::construct: object type is not registered");
 
             return it->second.construct(Some(value));
         }
@@ -200,40 +216,54 @@ namespace core
         //! Direct function pointer
         template <typename TRet, typename... TArgs>
         static Object construct(TRet(*function_ptr)(TArgs...))
+        { return constructCallable(Callable(std::function<TRet(TArgs...)>(function_ptr))); }
+
+        //! Non-const member functions
+        template <typename T, typename... TArgs>
+        static Object construct(void(T::*member_ptr)(TArgs...))
         {
-            return Object(Object::Kind::Callable, Callable(std::function<TRet(TArgs...)>(function_ptr)), lang::std_callable_classname);
+            auto proxy = [=](T& self, TArgs... args)
+            { (self.*member_ptr)(args...); };
+            return construct(std::function<void(T&, TArgs...)>(proxy));
         }
 
         //! Non-const member functions
         template <typename T, typename TRet, typename... TArgs>
         static Object construct(TRet(T::*member_ptr)(TArgs...))
         {
-            auto proxy = [=](T& self, TArgs... args)
+            // Force copy on return for reference types
+            using U = unqualified<TRet>;
+            auto proxy = [=](T& self, TArgs... args) -> U
             { return (self.*member_ptr)(args...); };
-            return construct(std::function<TRet(T&, TArgs...)>(proxy));
+            return construct(std::function<U(T&, TArgs...)>(proxy));
         }
 
         //! Const member functions
         template <typename T, typename TRet, typename... TArgs>
         static Object construct(TRet(T::*member_ptr)(TArgs...) const)
         {
-            auto proxy = [=](T const& self, TArgs... args)
+            // Force copy on return for reference types
+            using U = unqualified<TRet>;
+            auto proxy = [=](T const& self, TArgs... args) -> U
             { return (self.*member_ptr)(args...); };
-            return construct(std::function<TRet(T const&, TArgs...)>(proxy));
+            return construct(std::function<U(T const&, TArgs...)>(proxy));
         }
 
         //! Functors and lambdas
         template <typename T>
         static Object construct(T const& callable, typename std::enable_if<is_callable<T>::value>::type* dummy = nullptr)
-        {
-            return Object(Object::Kind::Callable, Callable(std::function<get_signature<T>>(callable)), lang::std_callable_classname);
-        }
+        { return constructCallable(Callable(std::function<get_signature<T>>(callable))); }
 
         //! Direct std::function use
         template <typename TRet, typename... TArgs>
         static Object construct(std::function<TRet(TArgs...)> const& fun)
+        { return constructCallable(Callable(fun)); }
+
+        static Object constructCallable(Some&& value)
         {
-            return Object(Object::Kind::Callable, Callable(fun), lang::std_callable_classname);
+            return Object(Object::Kind::Callable, std::forward<Some>(value),
+                          lang::std_callable_classname,
+                          Class::hashClassId(lang::std_callable_classname, lang::std_core_module_name));
         }
 
     private:

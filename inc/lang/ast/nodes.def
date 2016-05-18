@@ -20,7 +20,8 @@ DEF_NODE(Return,         FLAGS(None))
 DEF_NODE(Import,         FLAGS(None);     ATTR(std::string, name))
 DEF_NODE(ImportMask,     FLAGS(None);     ATTR(std::string, name);
                                           ATTR(std::string, mask))
-DEF_NODE(FunDecl,        FLAGS(Block);    ATTR(std::string,  name))
+DEF_NODE(FunDecl,        FLAGS(Block);    ATTR(std::string, name))
+DEF_NODE(ClassDecl,      FLAGS(None);     ATTR(std::string, name))
 DEF_NODE(Prog,           FLAGS(Block))
 
 // These nodes are produced later when processing the AST
@@ -33,6 +34,7 @@ DEF_NODE(ConstRef,       FLAGS(None);    ATTR(int,          index))
 
 DEF_NODE(IR_Prog,        FLAGS(None))
 DEF_NODE(IR_FunDecl,     FLAGS(None);    ATTR(std::string, name))
+DEF_NODE(IR_ClassDecl,   FLAGS(None);    ATTR(std::string, name))
 DEF_NODE(IR_LoadConst,   FLAGS(IR_Load); ATTR(int,         index))
 DEF_NODE(IR_LoadGlobal,  FLAGS(IR_Load); ATTR(std::string, name))
 DEF_NODE(IR_StorGlobal,  FLAGS(None);    ATTR(std::string, name))

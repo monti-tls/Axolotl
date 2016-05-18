@@ -19,13 +19,13 @@ void Core::record()
 
     this_module.global(std_main) = [](){};
 
-    this_module.global("Class") = ObjectFactory::record<Class>("Class",
+    this_module.global("Class") = ObjectFactory::record<Class>("core", "Class",
         ObjectFactory::constructorList(),
         ObjectFactory::methodList()
         ("classname",   &Class::classname)
         ("unserialize", &Class::unserialize));
 
-    this_module.global("bool") = ObjectFactory::record<bool>("bool",
+    this_module.global("bool") = ObjectFactory::record<bool>("core", "bool",
         ObjectFactory::constructorList()
         ([](bool a) { return a; }),
         ObjectFactory::methodList()
@@ -50,7 +50,7 @@ void Core::record()
             return a;
         }));
 
-    this_module.global("int") = ObjectFactory::record<int>("int",
+    this_module.global("int") = ObjectFactory::record<int>("core", "int",
         ObjectFactory::constructorList()
         ([](int a) { return a; }),
         ObjectFactory::methodList()
@@ -76,7 +76,7 @@ void Core::record()
             return a;
         }));
 
-    this_module.global("char") = ObjectFactory::record<char>("char",
+    this_module.global("char") = ObjectFactory::record<char>("core", "char",
         ObjectFactory::constructorList()
         ([](char a) { return a; }),
         ObjectFactory::methodList()
@@ -97,7 +97,7 @@ void Core::record()
             return a;
         }));
 
-    this_module.global("string") = ObjectFactory::record<std::string>("string",
+    this_module.global("string") = ObjectFactory::record<std::string>("core", "string",
         ObjectFactory::constructorList()
         ([](std::string const& a) { return a; }),
         ObjectFactory::methodList()
@@ -109,7 +109,7 @@ void Core::record()
         ("size",          [](std::string const& s)        { return (int) s.size(); })
         ("at",            [](std::string const& s, int i) { return s[i]; }));
 
-    this_module.global("float") = ObjectFactory::record<float>("float",
+    this_module.global("float") = ObjectFactory::record<float>("core", "float",
         ObjectFactory::constructorList()
         ([](float a) { return a; }),
         ObjectFactory::methodList()
@@ -135,7 +135,33 @@ void Core::record()
             return a;
         }));
 
-    this_module.global("StackFrame") = ObjectFactory::record<StackFrame>("StackFrame",
+    this_module.global("ulong") = ObjectFactory::record<std::size_t>("core", "ulong",
+        ObjectFactory::constructorList()
+        ([](std::size_t a) { return a; }),
+        ObjectFactory::methodList()
+        (std_add,       [](std::size_t a, std::size_t b) { return a + b; })
+        (std_sub,       [](std::size_t a, std::size_t b) { return a - b; })
+        (std_mul,       [](std::size_t a, std::size_t b) { return a * b; })
+        (std_div,       [](std::size_t a, std::size_t b) { return a / b; })
+        (std_mod,       [](std::size_t a, std::size_t b) { return a % b; })
+        (std_equals,    [](std::size_t a, std::size_t b) { return a == b; })
+        (std_lt,        [](std::size_t a, std::size_t b) { return a < b; })
+        (std_serialize, [](std::size_t a)
+        {
+            std::ostringstream ss;
+            ss << a;
+            return ss.str();
+        })
+        (std_unserialize, [](std::string const& s)
+        {
+            std::istringstream ss;
+            ss.str(s);
+            std::size_t a;
+            ss >> a;
+            return a;
+        }));
+
+    this_module.global("StackFrame") = ObjectFactory::record<StackFrame>("core", "StackFrame",
         ObjectFactory::constructorList(),
         ObjectFactory::methodList()
         ("pc",           [](StackFrame const& sf) { return sf.pc; })

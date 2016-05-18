@@ -67,7 +67,9 @@ namespace lang
         ast::Node* M_block_stmt();
 
         void M_param_list_decl();
-        ast::Node* M_fun_decl();
+        ast::Node* M_fun_decl(bool in_class = false);
+
+        ast::Node* M_class_decl();
 
         ast::Node* M_import_stmt();
 

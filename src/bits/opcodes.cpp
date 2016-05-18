@@ -30,9 +30,11 @@ namespace bits
 
         static Pair names[] =
         {
-            #define OPCODE(name, nargs) { name, #name },
+            #define DEF_MASK(name, value)
+            #define DEF_OPCODE(name, nargs) { name, #name },
             #include "bits/opcodes.def"
-            #undef OPCODE
+            #undef DEF_OPCODE
+            #undef DEF_MASK
         };
 
         for (int i = 0; i < (int) (sizeof(names) / sizeof(Pair)); ++i)
@@ -51,9 +53,11 @@ namespace bits
 
         if (!opcodes_nargs_inited)
         {   
-            #define OPCODE(name, nargs) opcodes_nargs[name] = nargs;
+            #define DEF_MASK(name, value)
+            #define DEF_OPCODE(name, nargs) opcodes_nargs[name] = nargs;
             #include "bits/opcodes.def"
-            #undef OPCODE
+            #undef DEF_OPCODE
+            #undef DEF_MASK
 
             opcodes_nargs_inited = true;
         }
@@ -63,5 +67,18 @@ namespace bits
             return -1;
 
         return it->second;
+    }
+
+    Opcode opcode_remove_masks(int op)
+    {
+        static const int all_masks = 0
+        #define DEF_MASK(name, value) | name ## _MASK
+        #define DEF_OPCODE(name, nargs)
+        #include "bits/opcodes.def"
+        #undef DEF_OPCODE
+        #undef DEF_MASK
+        ;
+
+        return (Opcode) (op & (~all_masks));
     }
 }

@@ -20,6 +20,7 @@
 #include "bits/blob.hpp"
 #include "bits/opcodes.hpp"
 #include "core/some.hpp"
+#include "lang/forward.hpp"
 
 #include <string>
 #include <vector>
@@ -55,14 +56,35 @@ namespace bits
         core::Some m_data;
     };
 
+    class DebugInfo
+    {
+    public:
+        DebugInfo();
+        DebugInfo(std::size_t line, std::size_t col, std::size_t extent = 0);
+        DebugInfo(lang::Token const& token);
+        ~DebugInfo();
+
+        bool empty() const;
+        std::size_t line() const;
+        std::size_t col() const;
+        std::size_t extent() const;
+
+    private:
+        bool m_empty;
+        std::size_t m_line;
+        std::size_t m_col;
+        std::size_t m_extent;
+    };
+
     class Assembler
     {
     public:
         Assembler(Blob& blob, std::size_t chunk_size = 32);
         ~Assembler();
 
+        void setDebugInfo(std::string const& file);
         void label(std::string const& name);
-        void emit(Opcode opcode, std::vector<Operand> const& operands);
+        void emit(Opcode opcode, std::vector<Operand> const& operands, DebugInfo const& debug = DebugInfo());
         void finalize();
 
         std::size_t pos() const;

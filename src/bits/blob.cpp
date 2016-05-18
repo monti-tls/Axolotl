@@ -62,6 +62,31 @@ Blob Blob::copy() const
     return Blob{m_buffer->copy()};
 }
 
+bool Blob::setModuleName(std::string const& module_name)
+{
+    blob_idx sidx;
+    if (!addString(module_name, sidx))
+        return false;
+
+    blob_hdr* header = M_header();
+    if (!header)
+        return false;
+
+    header->h_module_name = sidx;
+    return true;
+}
+
+std::string Blob::moduleName() const
+{
+    std::string module_name = "";
+
+    blob_hdr* header = M_header();
+    if (header)
+        string(header->h_module_name, module_name);
+
+    return module_name;
+}
+
 bool Blob::string(blob_off off, std::string& str) const
 {
     blob_shdr* strings = M_findSectionHeader(BLOB_ST_STRINGS);
@@ -325,7 +350,7 @@ blob_signature* Blob::signature(blob_idx sigidx, blob_off* sigoff) const
             return sig;
         }
 
-        pos += sizeof(blob_signature) + sig->si_argc * sizeof(blob_off);
+        pos += sizeof(blob_signature) + sig->si_argc * sizeof(blob_long);
     }
 
     return nullptr;
@@ -345,7 +370,7 @@ std::size_t Blob::signatureCount() const
     for (std::size_t pos = 0; pos < signatures->sh_size; ++idx)
     {
         blob_signature* sig = (blob_signature*) data->raw(pos, sizeof(blob_signature));
-        pos += sizeof(blob_signature) + sig->si_argc * sizeof(blob_off);
+        pos += sizeof(blob_signature) + sig->si_argc * sizeof(blob_long);
     }
 
     return idx;
@@ -375,12 +400,8 @@ bool Blob::addSignature(blob_idx& sigidx)
     return true;
 }
 
-bool Blob::addSignatureArgument(blob_idx sigidx, std::string const& type)
+bool Blob::addSignatureArgument(blob_idx sigidx, blob_long classid)
 {
-    blob_off type_off;
-    if (!addString(type, type_off))
-        return false;
-
     // Get the SIGNATURES section
     blob_shdr* signatures = M_findSectionHeader(BLOB_ST_SIGNATURES);
     if (!signatures)
@@ -391,14 +412,14 @@ bool Blob::addSignatureArgument(blob_idx sigidx, std::string const& type)
     if (!sig)
         return false;
 
-    blob_off doff = sigoff + sizeof(blob_signature) + sig->si_argc * sizeof(blob_off);
+    blob_off doff = sigoff + sizeof(blob_signature) + sig->si_argc * sizeof(blob_long);
     ++sig->si_argc;
 
-    std::shared_ptr<Buffer> data = M_growSection(signatures, sizeof(blob_off), doff);
+    std::shared_ptr<Buffer> data = M_growSection(signatures, sizeof(blob_long), doff);
     if (!data)
         return false;
 
-    if (!data->copy(0, (uint8_t*) &type_off, sizeof(blob_off)))
+    if (!data->copy(0, (uint8_t*) &classid, sizeof(blob_long)))
         return false;
 
     return true;
@@ -505,6 +526,108 @@ std::shared_ptr<Buffer> Blob::text() const
     return std::shared_ptr<Buffer>(m_buffer->sub(text->sh_offset, text->sh_size));
 }
 
+blob_debug_header* Blob::setDebugHeader(std::string const& file)
+{
+    // Add the file name
+    blob_idx file_sidx;
+    if (!addString(file, file_sidx))
+        return nullptr;
+
+    // Create the DEBUG section
+    blob_shdr* debug = M_findSectionHeader(BLOB_ST_DEBUG);
+    if (!debug)
+    {
+        debug = M_createSectionHeader();
+        if (!debug)
+            return nullptr;
+        debug->sh_type = BLOB_ST_DEBUG;
+    }
+    else
+        return nullptr;
+
+    std::shared_ptr<Buffer> data = M_growSection(debug, sizeof(blob_debug_header));
+    if (!data)
+        return nullptr;
+
+    blob_debug_header* header = (blob_debug_header*) data->raw(0, sizeof(blob_debug_header));
+    header->d_file = file_sidx;
+    header->d_count = 0;
+    return header;
+}
+
+blob_debug_header* Blob::debugHeader() const
+{
+    blob_shdr* debug = M_findSectionHeader(BLOB_ST_DEBUG);
+    if (!debug)
+        return nullptr;
+
+    std::shared_ptr<Buffer> data = M_sectionData(debug);
+    if (!data)
+        return nullptr;
+
+    return (blob_debug_header*) data->raw(0, sizeof(blob_debug_header));
+}
+
+blob_debug_entry* Blob::addDebugEntry(blob_off line, blob_off col, blob_len extent, blob_idx* deidx)
+{
+    blob_debug_entry* already_there = nullptr;
+    foreachDebugEntry([&](blob_idx idx, blob_debug_entry* entry)
+    {
+        if (entry->de_line == line && entry->de_col == col)
+        {
+            already_there = entry;
+            if (deidx)
+                *deidx = idx;
+        }
+    });
+
+    if (already_there)
+        return already_there;
+
+    blob_shdr* debug = M_findSectionHeader(BLOB_ST_DEBUG);
+    if (!debug)
+        return nullptr;
+
+    blob_debug_header* header = debugHeader();
+    if (!header)
+        return nullptr;
+    int idx = header->d_count++;
+
+    if (deidx)
+        *deidx = idx;
+
+    std::shared_ptr<Buffer> data = M_growSection(debug, sizeof(blob_debug_entry));
+    if (!data)
+        return nullptr;
+
+    blob_debug_entry* entry = (blob_debug_entry*) data->raw(0, sizeof(blob_debug_entry));
+    entry->de_line = line;
+    entry->de_col = col;
+    entry->de_extent = extent;
+
+    return entry;
+}
+
+blob_debug_entry* Blob::debugEntry(blob_idx deidx) const
+{
+    blob_shdr* debug = M_findSectionHeader(BLOB_ST_DEBUG);
+    if (!debug)
+        return nullptr;
+
+    blob_debug_header* header = debugHeader();
+    if (!header)
+        return nullptr;
+
+    if (deidx >= header->d_count)
+        return nullptr;
+
+    std::shared_ptr<Buffer> data = M_sectionData(debug);
+    if (!data)
+        return nullptr;
+
+    return (blob_debug_entry*) data->raw(sizeof(blob_debug_header) + deidx * sizeof(blob_debug_entry), sizeof(blob_debug_entry));
+}
+
 void Blob::foreachString(std::function<void(blob_idx, std::string const&)> const& action) const
 {
     blob_shdr* strings = M_findSectionHeader(BLOB_ST_STRINGS);
@@ -579,7 +702,7 @@ void Blob::foreachSignature(std::function<void(blob_idx, blob_signature*)> const
         action(i, signature(i));
 }
 
-bool Blob::foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_off)> const& action) const
+bool Blob::foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_long)> const& action) const
 {
     // Get the SIGNATURES section
     blob_shdr* signatures = M_findSectionHeader(BLOB_ST_SIGNATURES);
@@ -597,8 +720,8 @@ bool Blob::foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_off
 
     for (int i = 0; i < (int) sig->si_argc; ++i)
     {
-        blob_off off = sigoff + sizeof(blob_signature) + i * sizeof(blob_off);
-        action(*((blob_off*) data->raw(off, sizeof(blob_off))));
+        blob_off off = sigoff + sizeof(blob_signature) + i * sizeof(blob_long);
+        action(*((blob_long*) data->raw(off, sizeof(blob_long))));
     }
 
     return true;
@@ -613,6 +736,20 @@ void Blob::foreachConstant(std::function<void(blob_idx, blob_constant*)> const& 
     int count = (int) (constants->sh_size / sizeof(blob_constant));
     for (int i = 0; i < count; ++i)
         action(i, constant(i));
+}
+
+void Blob::foreachDebugEntry(std::function<void(blob_idx, blob_debug_entry*)> const& action) const
+{
+    blob_shdr* debug = M_findSectionHeader(BLOB_ST_DEBUG);
+    if (!debug)
+        return;
+
+    blob_debug_header* header = debugHeader();
+    if (!header)
+        return;
+
+    for (int i = 0; i < (int) header->d_count; ++i)
+        action(i, debugEntry(i));
 }
 
 blob_hdr* Blob::M_header() const

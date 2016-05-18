@@ -54,7 +54,7 @@ void Lexer::rewind()
     M_loadBuffer(m_right);
 
     m_where = Token::Where();
-    m_where.filename = util::ios_filename(m_in);
+    m_where.filename = streamName();
 }
 
 void Lexer::define(std::string const& name, std::string const& definition, Object const& build_token)
@@ -283,27 +283,33 @@ bool Lexer::eof() const
 { return m_eof; }
 
 std::string Lexer::snippet(Token const& token, std::size_t& pos)
+{ return snippet(m_in, token.where().line, token.where().col, pos); }
+
+std::string Lexer::snippet(std::istream& is, std::size_t line, std::size_t col, std::size_t& pos)
 {
     // Save the input stream's state
-    std::size_t saved_pos = m_in.tellg();
-    std::istream::iostate saved_state = m_in.rdstate();
-    m_in.clear();
-    m_in.seekg(0, std::ios::beg);
+    std::size_t saved_pos = is.tellg();
+    std::istream::iostate saved_state = is.rdstate();
+    is.clear();
+    is.seekg(0, std::ios::beg);
 
     // Read the whole line
-    std::string line;
-    for (int i = 0; i < (int) token.where().line; ++i)
-        std::getline(m_in, line);
+    std::string read;
+    for (int i = 0; i < (int) line; ++i)
+        std::getline(is, read);
 
     // Compute the position of the token within the line
-    pos = token.where().col;
+    pos = col != 0 ? col - 1 : 0;
 
     // Restore the input stream's state
-    m_in.seekg(saved_pos, std::ios::beg);
-    m_in.setstate(saved_state);
+    is.seekg(saved_pos, std::ios::beg);
+    is.setstate(saved_state);
 
-    return line;
+    return read;
 }
+
+std::string Lexer::streamName() const
+{ return util::ios_filename(m_in); }
 
 void Lexer::M_allocateBuffers()
 {

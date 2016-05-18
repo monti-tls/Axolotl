@@ -18,14 +18,22 @@
 #include "core/core.hpp"
 #include "lang/std_names.hpp"
 
+#include <functional>
+
 using namespace core;
 
-Class::Class(std::string const& classname)
-    : m_classname(classname)
+constexpr Class::ClassId Class::AnyClassId;
+
+Class::Class(std::string const& classname, std::string const& module_name)
+    : m_classid(hashClassId(classname, module_name))
+    , m_classname(classname)
 {}
 
 Class::~Class()
 {}
+
+Class::ClassId Class::classid() const
+{ return m_classid; }
 
 std::string const& Class::classname() const
 { return m_classname; }
@@ -33,9 +41,9 @@ std::string const& Class::classname() const
 void Class::addMember(std::string const& name, Object const& value)
 { m_members.push_back(std::make_pair(name, value)); }
 
-Object Class::construct(Some const& value) const
+Object Class::construct(Some&& value) const
 {
-    Object object(Object::Kind::Scalar, value, m_classname);
+    Object object(Object::Kind::Scalar, std::forward<Some>(value), m_classname, m_classid);
     Object::setupBuiltinMembers(object);
 
     for (auto m : m_members)
@@ -56,8 +64,23 @@ Object Class::unserialize(std::string const& value) const
 void Class::finalizeObject(Object& self) const
 {
     for (auto m : m_members)
+        self.newPolymorphic(m.first) = m.second;
+
+    for (auto m : m_members)
+    {
         if (m.first == m_classname)
-            self.newPolymorphic(lang::std_call) = m.second;
+        {
+            Class thisclass = *this;
+            auto proxy = [=](Object const& o)
+            {
+                Object self = thisclass.construct();
+                m.second(self, o);
+                return self;
+            };
+
+            self.newPolymorphic(lang::std_call) = proxy;
+        }
+    }
 
     // No constructors were provided
     if (!self.has(lang::std_call))
@@ -66,3 +89,6 @@ void Class::finalizeObject(Object& self) const
         [](Object const&) { throw std::runtime_error("object is not constructible"); };
     }
 }
+
+Class::ClassId Class::hashClassId(std::string const& classname, std::string const& module_name)
+{ return std::hash<std::string>{}(classname + "." + module_name); }

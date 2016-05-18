@@ -88,9 +88,9 @@ namespace core
         return vec;
     }
 
-    template <typename T>
-    struct always_string
-    { typedef std::string type; };
+    template <typename T, typename U>
+    struct always_of
+    { typedef T type; };
 
     template <typename T>
     static std::vector<T> explicit_pack2vec()

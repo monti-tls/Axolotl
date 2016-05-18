@@ -37,6 +37,17 @@ void ExtractMain::visit(FunDeclNode* node)
         next->accept(this);
 }
 
+void ExtractMain::visit(ClassDeclNode* node)
+{
+    Node* next = node->next();
+
+    node->remove();
+    m_main->chain(node);
+
+    if (next)
+        next->accept(this);
+}
+
 void ExtractMain::visitDefault(Node* node)
 {
     Node* next = node->next();

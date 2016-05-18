@@ -34,6 +34,7 @@ namespace vm
     {
     public:
         Module();
+        Module(bits::Blob const& blob, ImportTable* import_table = nullptr);
         Module(std::string const& name, ImportTable* import_table = nullptr);
         Module(Module const& cpy);
         ~Module();

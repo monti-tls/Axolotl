@@ -200,6 +200,18 @@ void PrettyPrint::visit(FunDeclNode* node)
     M_follow(node);
 }
 
+void PrettyPrint::visit(ClassDeclNode* node)
+{
+    M_indent();
+    m_os << "(ClassDecl: " << node->name << std::endl;
+    ++m_indent;
+    node->siblings()[0]->accept(this);
+    m_os << ")";
+    --m_indent;
+
+    M_follow(node);
+}
+
 void PrettyPrint::visit(ProgNode* node)
 {
     M_indent();
@@ -252,6 +264,18 @@ void PrettyPrint::visit(IR_FunDeclNode* node)
 {
     M_indent();
     m_os << "(IR_FunDecl: " << node->name << std::endl;
+    ++m_indent;
+    node->siblings()[0]->accept(this);
+    m_os << ")";
+    --m_indent;
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(IR_ClassDeclNode* node)
+{
+    M_indent();
+    m_os << "(IR_ClassDecl: " << node->name << std::endl;
     ++m_indent;
     node->siblings()[0]->accept(this);
     m_os << ")";
@@ -391,7 +415,7 @@ void PrettyPrint::visit(IR_PopNode* node)
 void PrettyPrint::visit(IR_ImportNode* node)
 {
     M_indent();
-    m_os << "(IR_Import: " << node->name << std::endl;
+    m_os << "(IR_Import: " << node->name << ")";
 
     M_follow(node);
 }
@@ -399,7 +423,7 @@ void PrettyPrint::visit(IR_ImportNode* node)
 void PrettyPrint::visit(IR_ImportMaskNode* node)
 {
     M_indent();
-    m_os << "(IR_ImportMask: " << node->name << "." << node->mask << std::endl;
+    m_os << "(IR_ImportMask: " << node->name << "." << node->mask << ")";
 
     M_follow(node);
 }

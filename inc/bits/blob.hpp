@@ -41,6 +41,9 @@ namespace bits
     //! Index type (to identify sections and symbols)
     typedef uint32_t blob_idx;
 
+    //! Long type (such as unique identifiers)
+    typedef uint64_t blob_long;
+
     //! Holds possible values for blob_shdr->sh_type
     enum blob_shtype
     {
@@ -57,7 +60,9 @@ namespace bits
         //! Symbol signatures section
         BLOB_ST_SIGNATURES,
         //! Constant data section
-        BLOB_ST_CONSTANTS
+        BLOB_ST_CONSTANTS,
+        //! Debug section
+        BLOB_ST_DEBUG
     };
 
     //! Holds possible values for blob_symbol->s_type
@@ -93,6 +98,8 @@ namespace bits
         blob_off h_shoff;
         //! Number of section headers
         blob_len h_shnum;
+        //! Name of the defined module
+        blob_off h_module_name;
     };
 
     //! A section header
@@ -136,7 +143,7 @@ namespace bits
     //! Signature entry header
     struct __attribute((packed)) blob_signature
     {
-        //! Number of arguments in the type list (each entry is a blob_off
+        //! Number of arguments in the type list (each entry is a blob_long
         //!   pointing to the type name in the string table)
         blob_len si_argc;
     };
@@ -148,6 +155,26 @@ namespace bits
         blob_off c_type;
         //! Serialized data as a string table entry offset
         blob_off c_serialized;
+    };
+
+    //! Debug header
+    struct __attribute__((packed)) blob_debug_header
+    {
+        //! File name as a string table entry offset
+        blob_off d_file;
+        //! Number of entries in the debug table
+        blob_len d_count;
+    };
+
+    //! Debug entry
+    struct __attribute__((packed)) blob_debug_entry
+    {
+        //! Line in the input stream
+        blob_off de_line;
+        //! Column in the latter line
+        blob_off de_col;
+        //! Extent of the location (if applicable)
+        blob_len de_extent;
     };
 
     //! The Blob class represents a binary blob and provides
@@ -173,6 +200,9 @@ namespace bits
         //! Create a clone of the blob that manipulates
         //!   a different buffer.
         Blob copy() const;
+
+        bool setModuleName(std::string const& module_name);
+        std::string moduleName() const;
 
         //! Get the string at offset `soff' in the string table.
         //! \param soff Offset of the string in the string table
@@ -254,7 +284,7 @@ namespace bits
         //! \param sigidx The index of the symbol signature to modify
         //! \param type The name of the type of the new argument to add
         //! \return true if success, false otherwise
-        bool addSignatureArgument(blob_idx sigidx, std::string const& type);
+        bool addSignatureArgument(blob_idx sigidx, blob_long classid);
 
         //! Get a constant entry from the constant data section
         //! \param ctsidx The index of the constant entry to access
@@ -276,6 +306,12 @@ namespace bits
         //! Get a buffer to the TEXT section's contents
         //! \return A buffer pointing to the TEXT section's contents if success, 0 otherwise
         std::shared_ptr<Buffer> text() const;
+
+        blob_debug_header* setDebugHeader(std::string const& file);
+        blob_debug_header* debugHeader() const;
+
+        blob_debug_entry* addDebugEntry(blob_off line, blob_off col, blob_len extent, blob_idx* deidx = nullptr);
+        blob_debug_entry* debugEntry(blob_idx deidx) const;
 
         //! Loop over every string in the string table and execute `action'
         //! \param action The action to execute on every string
@@ -303,11 +339,13 @@ namespace bits
         //! Loop over every argument in a given symbol signature
         //! \param action The action to execute on every argument of the given signature
         //! \return true if success, false otherwise
-        bool foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_off)> const& action) const;
+        bool foreachSignatureArgument(blob_idx sigidx, std::function<void(blob_long)> const& action) const;
 
         //! Loop over each constant entry in the constant data table
         //! \param action The action to execute on every constant entry
         void foreachConstant(std::function<void(blob_idx, blob_constant*)> const& action) const;
+
+        void foreachDebugEntry(std::function<void(blob_idx, blob_debug_entry*)> const& action) const;
 
      private:
         blob_hdr* M_header() const;

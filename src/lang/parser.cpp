@@ -503,11 +503,12 @@ Node* Parser::M_block_stmt()
 void Parser::M_param_list_decl()
 {
     Token name = M_eat(TOK_IDENTIFIER);
-    std::string pattern = std_any_type;
+    Token pattern_token;
+    std::string pattern = "";
 
     if (M_peek().which() == TOK_COLON)
     {
-        M_eat(TOK_COLON);
+        pattern_token = M_eat(TOK_COLON);
 
         switch (M_peek().which())
         {
@@ -523,7 +524,30 @@ void Parser::M_param_list_decl()
         }
     }
 
-    Symbol sym(Symbol::Argument, Symbol::Local, name.what().unwrap<std::string>(), pattern);
+    core::Class::ClassId id = core::Class::AnyClassId;
+    if (pattern.size())
+    {
+        Symtab::FindResult res;
+        bool ok = false;
+
+        if (M_scope()->find(pattern, &res))
+        {
+            if (res.symbol->binding() == Symbol::Global)
+            {
+                core::Object const& c = m_module.global(pattern);
+                if (c.meta().is<core::Class>())
+                {
+                    id = c.unwrap<core::Class>().classid();
+                    ok = true;
+                }
+            }
+        }
+
+        if (!ok)
+            error(pattern_token, "invalid class pattern");
+    }
+
+    Symbol sym(Symbol::Argument, Symbol::Local, name.what().unwrap<std::string>(), id);
     if (!M_check(M_scope())->add(sym))
         error(name, "parameter name clash");
 
@@ -534,7 +558,7 @@ void Parser::M_param_list_decl()
     }
 }
 
-Node* Parser::M_fun_decl()
+Node* Parser::M_fun_decl(bool in_class)
 {
     Token start_token = M_eat(TOK_KW_FUN);
     Token name = M_eat(TOK_IDENTIFIER);
@@ -542,6 +566,15 @@ Node* Parser::M_fun_decl()
     // Setup a new scope so we can store the parameter
     //   list inside
     M_pushScope();
+
+    // If this function is rather a method, implicitely define the
+    //   'self' argument
+    if (in_class)
+    {
+        Symbol sym(Symbol::Argument, Symbol::Local, std_self, core::Class::AnyClassId);
+        if (!M_check(M_scope())->add(sym))
+            error(name, "internal error: self argument name clash");
+    }
 
     // Get the parameter list
     M_eat(TOK_LPAR);
@@ -561,7 +594,43 @@ Node* Parser::M_fun_decl()
     // Add the function to the current scope
     Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
     if (!M_check(M_scope())->add(symbol))
-        error(name, "redefining function");
+        error(name, "name clash");
+
+    return node;
+}
+
+Node* Parser::M_class_decl()
+{
+    Token start_token = M_eat(TOK_KW_CLASS);
+    Token name = M_eat(TOK_IDENTIFIER);
+
+    M_pushScope();
+
+    M_eat(TOK_LCURL);
+
+    Node* body = nullptr;
+    do
+    {
+        Node* method = M_check(M_fun_decl(true));
+
+        if (body)
+            body->chain(method);
+        else
+            body = method;
+    } while (M_peek().which() == TOK_KW_FUN);
+
+    M_eat(TOK_RCURL);
+    M_eat(TOK_SEMICOLON);
+
+    ClassDeclNode* node = new ClassDeclNode(start_token);
+    node->name = name.what().unwrap<std::string>();
+    node->addSibling(body);
+    node->attachSymtab(M_popScope());
+
+    // Add the function to the current scope
+    Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
+    if (!M_check(M_scope())->add(symbol))
+        error(name, "name clash");
 
     return node;
 }
@@ -685,6 +754,10 @@ Node* Parser::M_stmt()
 
         case TOK_KW_FUN:
             node = M_check(M_fun_decl());
+            break;
+
+        case TOK_KW_CLASS:
+            node = M_check(M_class_decl());
             break;
 
         case TOK_KW_IMPORT:

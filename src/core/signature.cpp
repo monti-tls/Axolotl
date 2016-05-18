@@ -40,10 +40,10 @@ bool Signature::match(std::vector<Object> const& args) const
 
     for (int i = 0; i < (int) args.size(); ++i)
     {
-        if (m_arguments[i] == lang::std_any_type)
+        if (m_arguments[i] == Class::AnyClassId)
             continue;
 
-        if (args[i].classname() != m_arguments[i])
+        if (args[i].classid() != m_arguments[i])
             return false;
     }
 

@@ -71,6 +71,14 @@ namespace vm
         std::shared_ptr<bits::Buffer> m_text;
 
         bits::Opcode m_ir;
+        struct
+        {
+            bool has;
+            std::string file;
+            std::size_t line;
+            std::size_t col;
+            std::size_t extent;
+        } m_debug;
         std::vector<uint32_t> m_operands;
 
         int m_pc;

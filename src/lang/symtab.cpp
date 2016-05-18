@@ -51,7 +51,8 @@ std::size_t Symtab::localsCount() const
     std::size_t count = 0;
     for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it)
     {
-        if (it->binding() == Symbol::Local)
+        if (it->binding() == Symbol::Local &&
+            it->which() != Symbol::Argument)
             ++count;
     }
 

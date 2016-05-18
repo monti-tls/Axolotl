@@ -52,13 +52,8 @@ bits::blob_symbol* Function::symbol() const
 
 void Function::M_createSignature()
 {
-    std::vector<Signature::TypeName> args;
-    m_module.blob().foreachSignatureArgument(m_symbol->s_signature, [&](blob_off soff)
-    {
-        std::string type;
-        if (!m_module.blob().string(soff, type))
-            throw std::runtime_error("vm::Function::M_createSignature: invalid signature argument");
-        args.push_back(type);
-    });
+    std::vector<Class::ClassId> args;
+    m_module.blob().foreachSignatureArgument(m_symbol->s_signature, [&](blob_long id)
+    { args.push_back(id); });
     m_signature = std::shared_ptr<Signature>(new Signature(args));
 }

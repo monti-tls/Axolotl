@@ -17,7 +17,7 @@ void Lang::record()
 
     this_module.global(std_main) = [](){};
     
-    this_module.global("Token") = ObjectFactory::record<Token>("Token",
+    this_module.global("Token") = ObjectFactory::record<Token>("lang", "Token",
         ObjectFactory::constructorList()
         ([](int which, Object const& what) { return Token(which, what); }),
         ObjectFactory::methodList()

@@ -22,7 +22,8 @@ namespace lang
     // All names containing an `@' are strictly private
     //   and can't collide with user-defined symbols
     
-    constexpr auto std_iface_prefix = "@iface@";
+    constexpr auto std_core_module_name = "core";
+
     constexpr auto std_callable_classname = "@callable";
     constexpr auto std_nil_classname = "@nil";
     constexpr auto std_const_dict  = "@consts";
@@ -32,6 +33,7 @@ namespace lang
     constexpr auto std_main        = "__main__";
 
     constexpr auto std_classname   = "__classname__";
+    constexpr auto std_classid     = "__classid__";
     constexpr auto std_del         = "__del__";
     constexpr auto std_call        = "__call__";
     constexpr auto std_serialize   = "__serialize__";
@@ -52,6 +54,8 @@ namespace lang
     constexpr auto std_lte         = "__lte__";
     constexpr auto std_gt          = "__gt__";
     constexpr auto std_gte         = "__gte__";
+
+    constexpr auto std_self        = "self";
 }
 
 #endif // __AXOLOTL_LANG_STD_NAMES_H__

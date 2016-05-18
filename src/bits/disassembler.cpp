@@ -128,6 +128,13 @@ void Disassembler::dumpText()
         { return *((uint32_t*) text->raw(sizeof(uint32_t) * pc++, sizeof(uint32_t))); };
 
         Opcode opcode = (Opcode) fetch();
+
+        if (opcode & DEBUG_MASK)
+        {
+            fetch();
+            opcode = (Opcode) (opcode & (~DEBUG_MASK));
+        }
+
         for (int i = 0; i < opcode_nargs(opcode); ++i)
             operands.push_back((int) fetch());
 
@@ -308,8 +315,12 @@ void Disassembler::dumpText()
 void Disassembler::M_dumpSignature(blob_idx sigidx)
 {
     std::vector<std::string> args;
-    m_blob.foreachSignatureArgument(sigidx, [&](blob_off soff)
-    { args.push_back(m_blob.string(soff)); });
+    m_blob.foreachSignatureArgument(sigidx, [&](blob_long classid)
+    {
+        std::ostringstream ss;
+        ss << std::hex << classid;
+        args.push_back(ss.str());
+    });
 
     m_os << '(';
     for (int i = 0; i < (int) args.size(); ++i)

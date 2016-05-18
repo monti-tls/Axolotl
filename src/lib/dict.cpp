@@ -7,7 +7,7 @@ using namespace lang;
 
 void Dict::record()
 {
-    ObjectFactory::record<Dict>("dict",
+    ObjectFactory::record<Dict>("core", "dict",
         ObjectFactory::constructorList(),
         ObjectFactory::methodList()
         ("find",          [](Dict const& dict, Object const& key)

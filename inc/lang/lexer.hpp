@@ -40,6 +40,8 @@ namespace lang
         Token getToken();
         bool eof() const;
         std::string snippet(Token const& token, std::size_t& pos);
+        static std::string snippet(std::istream& is, std::size_t line, std::size_t col, std::size_t& pos);
+        std::string streamName() const;
 
     private:
         void M_allocateBuffers();

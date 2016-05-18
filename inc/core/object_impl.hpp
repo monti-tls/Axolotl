@@ -24,7 +24,7 @@
 namespace core
 {
     template <typename T>
-    Object::Object(T value)
+    Object::Object(T const& value)
         : m_impl(nullptr)
     { *this = ObjectFactory::construct(value); }
 

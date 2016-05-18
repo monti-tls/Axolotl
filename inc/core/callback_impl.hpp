@@ -31,13 +31,12 @@ namespace core
         
         std::vector<Object>& writeable = const_cast<std::vector<Object>&>(args);
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(writeable.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
-
         return ObjectFactory::construct(applyTuple(this->m_fun, tp));
     }
 
     template <typename TRet, typename... TArgs>
     Signature CallbackImpl<TRet, TArgs...>::signature() const
-    { return Signature(explicit_pack2vec<std::string, typename always_string<TArgs>::type...>(ObjectFactory::typeName<TArgs>()...), true); }
+    { return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), true); }
 
     template <typename... TArgs>
     Object CallbackImpl<void, TArgs...>::invoke(std::vector<Object> const& args)
@@ -54,7 +53,7 @@ namespace core
 
     template <typename... TArgs>
     Signature CallbackImpl<void, TArgs...>::signature() const
-    { return Signature(explicit_pack2vec<std::string, typename always_string<TArgs>::type...>(ObjectFactory::typeName<TArgs>()...), false); }
+    { return Signature(explicit_pack2vec<Class::ClassId, typename always_of<Class::ClassId, TArgs>::type...>(ObjectFactory::typeClassId<TArgs>()...), false); }
 }
 
 #endif // __AXOLOTL_CORE_CALLBACK_IMPL_H__

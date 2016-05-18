@@ -18,6 +18,7 @@
 #define __AXOLOTL_CORE_OBJECT_H__
 
 #include "core/some.hpp"
+#include "core/class.hpp"
 
 #include <vector>
 #include <string>
@@ -41,9 +42,9 @@ namespace core
         Object(Object const& cpy, bool weaken);
 
         template <typename T>
-        Object(T value);
+        Object(T const& value);
 
-        Object(Kind kind, Some meta, std::string const& classname);
+        Object(Kind kind, Some&& meta, std::string const& classname, Class::ClassId classid);
         ~Object();
 
         Object& operator=(Object const& cpy);
@@ -60,6 +61,7 @@ namespace core
         bool isInvokable() const;
         bool isNil() const;
         std::string classname() const;
+        Class::ClassId classid() const;
 
         bool has(std::string const& id) const;
         bool isPolymorphic(std::string const& id) const;
@@ -114,6 +116,7 @@ namespace core
             Kind kind;
             Some meta;
             std::string classname;
+            Class::ClassId classid;
             std::multimap<std::string, Object> members;
             int refcount;
         }* m_impl;

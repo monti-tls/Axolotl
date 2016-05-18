@@ -47,12 +47,14 @@ namespace lang
             void visit(ast::ImportNode* node);
             void visit(ast::ImportMaskNode* node);
             void visit(ast::FunDeclNode* node);
+            void visit(ast::ClassDeclNode* node);
             void visit(ast::ProgNode* node);
             void visit(ast::GlobalRefNode* node);
             void visit(ast::LocalRefNode* node);
             void visit(ast::ConstRefNode* node);
             void visit(ast::IR_ProgNode* node);
             void visit(ast::IR_FunDeclNode* node);
+            void visit(ast::IR_ClassDeclNode* node);
             void visit(ast::IR_LoadConstNode* node);
             void visit(ast::IR_LoadGlobalNode* node);
             void visit(ast::IR_StorGlobalNode* node);

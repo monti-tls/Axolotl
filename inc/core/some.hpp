@@ -30,7 +30,7 @@ namespace core
         {}
 
         template <typename T>
-        Some(T t)
+        Some(T const& t)
             : m_data{new Data<typename std::remove_const<T>::type>(t)}
         {}
 

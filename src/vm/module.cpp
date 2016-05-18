@@ -32,6 +32,21 @@ Module::Module()
     : m_impl(nullptr)
 {}
 
+Module::Module(Blob const& blob, ImportTable* import_table)
+    : m_impl(new Impl())
+{
+    m_impl->refcount = 1;
+    m_impl->blob = blob;
+    m_impl->name = m_impl->blob.moduleName();
+    m_impl->engine = nullptr;
+    m_impl->init_called = false;
+
+    if (import_table)
+        m_impl->import_table = import_table;
+    else
+        m_impl->import_table = new ImportTable();
+}
+
 Module::Module(std::string const& name, ImportTable* import_table)
     : m_impl(new Impl())
 {
@@ -118,6 +133,7 @@ void Module::setBlob(Blob const& blob)
         throw std::runtime_error("vm::Module::setBlob: access to empty module");
     
     m_impl->blob = blob;
+    m_impl->blob.setModuleName(m_impl->name);
 
     M_processSymbols();
     M_processTypeSpecs();
@@ -279,7 +295,7 @@ void Module::M_processTypeSpecs()
         if (!m_impl->blob.string(tspec->ts_name, type_name))
             throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid type specification");
 
-        Class c(type_name);
+        Class c(type_name, m_impl->name);
 
         m_impl->blob.foreachTypeSpecSymbol(tidx, [&](blob_idx symidx)
         {
@@ -317,4 +333,4 @@ void Module::M_processConstants()
 }
 
 Object Module::M_makeFunction(blob_symbol* symbol) const
-{ return Object(Object::Kind::Callable, Callable(Function(*this, symbol)), lang::std_callable_classname); }
+{ return ObjectFactory::constructCallable(Callable(Function(*this, symbol))); }

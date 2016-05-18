@@ -1,5 +1,6 @@
 #include "bits/assembler.hpp"
 #include "bits/basic_buffer.hpp"
+#include "lang/token.hpp"
 
 #include <stdexcept>
 #include <cstdlib>
@@ -33,6 +34,42 @@ Some const& Operand::data() const
 Operand Operand::label(std::string const& name)
 { return Operand(name, true); }
 
+DebugInfo::DebugInfo()
+    : m_empty(true)
+    , m_line(0)
+    , m_col(0)
+    , m_extent(0)
+{}
+
+DebugInfo::DebugInfo(std::size_t line, std::size_t col, std::size_t extent)
+    : m_empty(false)
+    , m_line(line)
+    , m_col(col)
+    , m_extent(extent)
+{}
+
+DebugInfo::DebugInfo(lang::Token const& token)
+    : m_empty(false)
+    , m_line(token.where().line)
+    , m_col(token.where().col)
+    , m_extent(token.lexeme().size())
+{}
+
+DebugInfo::~DebugInfo()
+{}
+
+bool DebugInfo::empty() const
+{ return m_empty; }
+
+std::size_t DebugInfo::line() const
+{ return m_line; }
+
+std::size_t DebugInfo::col() const
+{ return m_col; }
+
+std::size_t DebugInfo::extent() const
+{ return m_extent; }
+
 Assembler::Assembler(Blob& blob, std::size_t chunk_size)
     : m_blob(blob)
     , m_raw(nullptr)
@@ -47,12 +84,18 @@ Assembler::~Assembler()
         finalize();
 }
 
+void Assembler::setDebugInfo(std::string const& file)
+{
+    if (!m_blob.setDebugHeader(file))
+        throw std::runtime_error("bits::Assembler::setDebugInfo: can't set the debug header");
+}
+
 void Assembler::label(std::string const& name)
 {
     m_labels[name] = pos();
 }
 
-void Assembler::emit(Opcode opcode, std::vector<Operand> const& operands)
+void Assembler::emit(Opcode opcode, std::vector<Operand> const& operands, DebugInfo const& info)
 {
     int nargs = opcode_nargs(opcode);
     if (nargs < 0)
@@ -60,7 +103,18 @@ void Assembler::emit(Opcode opcode, std::vector<Operand> const& operands)
     else if (nargs != (int) operands.size())
         throw std::runtime_error("bits::Assembler::emit: operand mismatch for " + opcode_as_string(opcode));
 
-    M_write(opcode);
+    if (!info.empty())
+    {
+        M_write(opcode | DEBUG_MASK);
+
+        blob_idx deidx = 0;
+        if (!m_blob.addDebugEntry(info.line(), info.col(), info.extent(), &deidx))
+            throw std::runtime_error("vits::Assembler::emit: can't add debug entry in blob");
+
+        M_write(deidx);
+    }
+    else
+        M_write(opcode);
 
     for (auto op : operands)
     {

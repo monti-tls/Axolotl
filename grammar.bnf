@@ -235,6 +235,18 @@ fun_decl := KW_FUN IDENTIFIER
           ;
 
 ///////////////////////////////////////////////////////////
+// Class declaration grammar                             //
+//                                                       //
+// Defines :                                             //
+//   class_decl : top-level function declaration rule    //
+///////////////////////////////////////////////////////////
+
+class_decl := KW_CLASS IDENTIFIER LCURL
+              fun_decl+
+              RCURL SEMICOLON
+            ;
+
+///////////////////////////////////////////////////////////
 // Import statement grammar                              //
 //                                                       //
 // Defines :                                             //
@@ -254,6 +266,7 @@ import_stmt := KW_IMPORT IDENTIFIER ((AS IDENTIFIER) | (DOT (WILDCARD | IDENTIFI
 stmt := ctrl_stmt
       | block_stmt
       | fun_decl
+      | class_decl
       | import_stmt
       | expr SEMICOLON
       ;

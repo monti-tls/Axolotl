@@ -18,6 +18,7 @@
 #define __AXOLOTL_CORE_SIGNATURE_H__
 
 #include "core/object.hpp"
+#include "core/class.hpp"
 
 #include <string>
 #include <vector>
@@ -27,8 +28,7 @@ namespace core
     class Signature
     {
     public:
-        typedef std::string TypeName;
-        typedef std::vector<TypeName> TypeList;
+        typedef std::vector<Class::ClassId> TypeList;
 
     public:
         //! \param returns Only meaningful for C++ functions that can return void

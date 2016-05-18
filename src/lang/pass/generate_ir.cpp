@@ -37,6 +37,19 @@ void GenerateIR::visit(FunDeclNode* node)
     M_follow(node);
 }
 
+void GenerateIR::visit(ClassDeclNode* node)
+{
+    Node* body = node->siblings()[0];
+
+    IR_ClassDeclNode* new_node = new IR_ClassDeclNode(node->startToken());
+    new_node->name = node->name;
+    new_node->addSibling(NodeGenerator::generate<GenerateIR>(body, this));
+    new_node->attachSymtab(node->detachSymtab());
+
+    M_emit(new_node);
+    M_follow(node);
+}
+
 void GenerateIR::visit(ReturnNode* node)
 {
     if (node->siblings().size())

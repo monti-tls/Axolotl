@@ -21,6 +21,8 @@
 #include "lang/ast/node_visitor.hpp"
 #include "bits/bits.hpp"
 
+#include <stack>
+
 namespace lang
 {
     namespace pass
@@ -36,6 +38,7 @@ namespace lang
 
             void visit(ast::IR_ProgNode* node);
             void visit(ast::IR_FunDeclNode* node);
+            void visit(ast::IR_ClassDeclNode* node);
             void visit(ast::IR_LoadConstNode* node);
             void visit(ast::IR_LoadGlobalNode* node);
             void visit(ast::IR_StorGlobalNode* node);
@@ -58,8 +61,16 @@ namespace lang
             void visitDefault(ast::Node* node);
 
         private:
+            bool M_inClassDecl() const;
+            bits::blob_idx M_currentClassDeclIndex() const;
+            void M_pushClassDeclIndex(bits::blob_idx idx);
+            bits::blob_idx M_popClassDeclIndex();
+
+        private:
             bits::Assembler* m_assembler;
             bits::Blob m_blob;
+
+            std::stack<bits::blob_idx> m_class_decls;
         };
     }
 }

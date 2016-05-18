@@ -17,9 +17,14 @@
 #include "bits/bits.hpp"
 #include "vm/engine.hpp"
 #include "vm/function.hpp"
+#include "lang/lexer.hpp"
+#include "lang/parser_base.hpp"
 #include "lang/std_names.hpp"
+#include "util/ansi.hpp"
 
 #include <memory>
+#include <sstream>
+#include <fstream>
 #include <stdexcept>
 #include <iostream>
 
@@ -39,6 +44,9 @@ Engine::Engine(Module const& main_module)
     M_changeModule(main_module);
 
     M_initOpcodes();
+
+    m_argc = 0;
+    m_locals_count = 0;
 }
 
 Engine::~Engine()
@@ -58,13 +66,13 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
     int tos = M_stackIndex();
 
     // Setup arguments
-    m_argc = (int) args.size();
-    for (int i = 0; i < m_argc; ++i)
+    for (int i = 0; i < (int) args.size(); ++i)
         M_push(args[i]);
 
     // Push a dummy stack frame, when we will
     //   reach it execution will stop
     M_push(M_makeFrame(true));
+    m_argc = (int) args.size();
 
     // Branch to the function
     M_branchToFunction(fun);
@@ -83,9 +91,11 @@ ImportTable* Engine::importTable() const
 
 void Engine::M_initOpcodes()
 {
-    #define OPCODE(name, nargs) m_opcodes_nargs[name] = nargs;
+    #define DEF_MASK(name, value)
+    #define DEF_OPCODE(name, nargs) m_opcodes_nargs[name] = nargs;
     #include "bits/opcodes.def"
-    #undef OPCODE
+    #undef DEF_OPCODE
+    #undef DEF_MASK
 
     int nargs_max = 0;
     for (auto it : m_opcodes_nargs)
@@ -159,6 +169,13 @@ void Engine::M_changeModule(Module const& module)
     if (!m_text)
         throw std::runtime_error("vm::Engine::M_changeModule: module has no text");
 
+    blob_debug_header* debug_header = module.blob().debugHeader();
+    if (debug_header)
+    {
+        if (!module.blob().string(debug_header->d_file, m_debug.file))
+            throw std::runtime_error("vm::Engine::M_changeModule: file name in debug header invalid");
+    }
+
     if (m_module)
         delete m_module;
     m_module = new Module(module);
@@ -178,8 +195,26 @@ void Engine::M_decode()
 {
     // Get the opcode
     m_ir = (Opcode) M_fetch();
+
+    if (m_ir & DEBUG_MASK)
+    {
+        m_ir = (Opcode) (m_ir & (~DEBUG_MASK));
+        uint32_t idx = M_fetch();
+
+        blob_debug_entry* entry = m_module->blob().debugEntry(idx);
+        if (!entry)
+            M_error("M_decode: invalid debug entry index");
+
+        m_debug.has = true;
+        m_debug.line = entry->de_line;
+        m_debug.col = entry->de_col;
+        m_debug.extent = entry->de_extent;
+    }
+    else
+        m_debug.has = false;
+
     if (!M_checkOpcode(m_ir))
-        throw std::runtime_error("vm::Engine::M_fetch: invalid instruction opcode");
+        throw std::runtime_error("vm::Engine::M_decode: invalid instruction opcode");
 
     // Get the operands
     m_operands.clear();
@@ -506,12 +541,13 @@ void Engine::M_invoke(Object fun, int argc)
 
     Callable call = fun.unwrap<Callable>();
 
+    if (!call.signature().match(argv))
+        M_error("signature mismatch");
+
     if (call.kind() == Callable::Kind::Native)
     {
         Object ret = call.invoke(argv);
-
-        if (call.signature().returns())
-            M_push(ret);
+        M_push(ret);
     }
     else
     {
@@ -549,4 +585,51 @@ void Engine::M_branchToFunction(Function const& fun)
 }
 
 void Engine::M_error(std::string const& msg) const
-{ throw std::runtime_error("vm::Engine::" + msg + " (at " + opcode_as_string(m_ir) + ")"); }
+{
+    std::ostringstream ss;
+
+    if (m_debug.has)
+    {
+        ss << util::ansi::bold << m_debug.file << ":" << m_debug.line << ":" << m_debug.col << ": ";
+        ss << util::ansi::clear;
+    }
+
+    ss << util::ansi::bold << lang::ParserBase::error_color;
+    ss << "runtime error: " << util::ansi::clear;
+    ss << msg << std::endl;
+
+    if (m_debug.has)
+    {
+        std::ifstream is(m_debug.file);
+        if (is)
+        {
+            std::size_t pos;
+            std::string line = lang::Lexer::snippet(is, m_debug.line, m_debug.col, pos);
+
+            if (line.size())
+            {
+                std::string fmt = lang::ParserBase::emph_color;
+                line.insert(pos, fmt);
+                std::size_t end = std::min(line.size()-1, pos + fmt.size() + m_debug.extent);
+                line.insert(end, util::ansi::clear);
+            }
+
+            pos += 4;
+            ss << "    " << line << std::endl;
+
+            for (int i = 0; i < ((int) pos); ++i)
+                ss << " ";
+            ss << lang::ParserBase::emph_color << "^";
+
+            for (int i = 0; i < ((int) m_debug.extent) - 1; ++i)
+                ss << "~";
+            ss << util::ansi::clear << std::endl;
+        }
+    }
+
+    ss << util::ansi::bold << lang::ParserBase::note_color;
+    ss << "while executing: " << util::ansi::clear;
+    ss << opcode_as_string(m_ir) << std::endl;
+
+    throw std::runtime_error(ss.str());
+}

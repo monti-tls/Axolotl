@@ -1,5 +1,6 @@
 #include "lang/parser_base.hpp"
 #include "util/ansi.hpp"
+#include "util/ios_filename.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -28,8 +29,6 @@ std::string ParserBase::message(Token const& token, std::string const& msg)
 
     std::size_t pos;
     std::string line = m_lexer.snippet(token, pos);
-
-    if (pos) --pos;
 
     if (line.size())
     {
@@ -71,6 +70,9 @@ void ParserBase::warning(Token const& token, std::string const& msg)
 
     std::clog << message(token, ss.str());
 }
+
+std::string ParserBase::streamName() const
+{ return m_lexer.streamName(); }
 
 void ParserBase::M_build()
 {

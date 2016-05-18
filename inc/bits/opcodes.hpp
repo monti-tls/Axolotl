@@ -23,13 +23,23 @@ namespace bits
 {
     enum Opcode
     {
-        #define OPCODE(name, nargs) name,
+        #define DEF_MASK(name, value)
+        #define DEF_OPCODE(name, nargs) name,
         #include "bits/opcodes.def"
-        #undef OPCODE
+        #undef DEF_OPCODE
+        #undef DEF_MASK
+
+
+        #define DEF_MASK(name, value) name ## _MASK = value,
+        #define DEF_OPCODE(name, nargs)
+        #include "bits/opcodes.def"
+        #undef DEF_OPCODE
+        #undef DEF_MASK
     };
 
     std::string opcode_as_string(Opcode op);
     int opcode_nargs(Opcode op);
+    Opcode opcode_remove_masks(int op);
 }
 
 #endif // __AXOLOTL_BITS_OPCODES_H__

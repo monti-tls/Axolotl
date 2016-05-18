@@ -38,6 +38,7 @@ namespace lang
 
             void visit(ast::ProgNode* node);
             void visit(ast::FunDeclNode* node);
+            void visit(ast::ClassDeclNode* node);
             void visitDefault(ast::Node* node);
 
         private:

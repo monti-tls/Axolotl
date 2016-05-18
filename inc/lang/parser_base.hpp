@@ -32,7 +32,7 @@ namespace lang
         static constexpr auto error_color = util::ansi::colors::Tomato;
         static constexpr auto warning_color = util::ansi::colors::Orange;
         static constexpr auto note_color = util::ansi::colors::CornflowerBlue;
-        static constexpr auto emph_color = "";
+        static constexpr auto emph_color = util::ansi::bold;
 
     public:
         ParserBase(std::istream& in, std::size_t lookhead = 1, std::size_t lex_lookahead = 128);
@@ -43,6 +43,7 @@ namespace lang
         std::string message(Token const& token, std::string const& msg);
         void error(Token const& token, std::string const& msg);
         void warning(Token const& token, std::string const& msg);
+        std::string streamName() const;
 
     protected:
         virtual void M_setupLexer() = 0;

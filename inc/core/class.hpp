@@ -28,23 +28,30 @@ namespace core
     class Class
     {
     public:
+        typedef std::size_t ClassId;
         typedef std::pair<std::string, Object> Member;
+        static constexpr ClassId AnyClassId = 0;
 
     public:
-        Class(std::string const& classname = "");
+        Class(std::string const& classname = "", std::string const& module_name = "");
         ~Class();
 
+        ClassId classid() const;
         std::string const& classname() const;
         void addMember(std::string const& name, Object const& value);
 
-        Object construct(Some const& value = Some()) const;
+        Object construct(Some&& value = Some()) const;
         Object unserialize(std::string const& serialized) const;
 
         void finalizeObject(Object& self) const;
 
     private:
+        ClassId m_classid;
         std::string m_classname;
         std::list<Member> m_members;
+
+    public:
+        static ClassId hashClassId(std::string const& classname, std::string const& module_name);
     };
 }
 
