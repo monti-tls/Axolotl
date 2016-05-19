@@ -52,7 +52,7 @@ bits::blob_symbol* Function::symbol() const
 
 void Function::M_createSignature()
 {
-    std::vector<Class::ClassId> args;
+    std::vector<Class::Id> args;
     m_module.blob().foreachSignatureArgument(m_symbol->s_signature, [&](blob_long id)
     { args.push_back(id); });
     m_signature = std::shared_ptr<Signature>(new Signature(args));

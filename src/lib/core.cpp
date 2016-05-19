@@ -17,6 +17,17 @@ void Core::record()
     Module this_module = Module("core");
     ImportTable::addBuiltin(this_module);
 
+    /*ObjectFactory::m_impl->classes[detail::uniqueTypeId<Callable>()] = Class::CallableClass;*/
+
+    this_module.global("Nil") = ObjectFactory::record<void>("core", "Nil",
+        ObjectFactory::constructorList()
+        ([](){ return Object::nil(); }),
+        ObjectFactory::methodList());
+
+    this_module.global("Callable") = ObjectFactory::record<Callable>("core", "Callable",
+        ObjectFactory::constructorList(),
+        ObjectFactory::methodList());
+
     this_module.global(std_main) = [](){};
 
     this_module.global("Class") = ObjectFactory::record<Class>("core", "Class",
@@ -24,10 +35,6 @@ void Core::record()
         ObjectFactory::methodList()
         ("classname",   &Class::classname)
         ("unserialize", &Class::unserialize));
-
-    this_module.global("list") = ObjectFactory::record<std::vector<Object>>("core", "list",
-        ObjectFactory::constructorList(),
-        ObjectFactory::methodList());
 
     this_module.global("bool") = ObjectFactory::record<bool>("core", "bool",
         ObjectFactory::constructorList()
@@ -172,4 +179,30 @@ void Core::record()
         ("locals_count", [](StackFrame const& sf) { return sf.locals_count; })
         ("locals_start", [](StackFrame const& sf) { return sf.locals_start; })
         ("argc",         [](StackFrame const& sf) { return sf.argc; }));
+
+    this_module.global("list") = ObjectFactory::record<std::vector<Object>>("core", "list",
+        ObjectFactory::constructorList()
+        ([]() { return std::vector<Object>(); })
+        ([](Object const& obj) { return std::vector<Object>(obj); })
+        ([](int len) { return std::vector<Object>(len, Object::nil()); })
+        ([](int len, Object const& obj) { return std::vector<Object>(len, obj); }),
+        ObjectFactory::methodList()
+        ("get", [](std::vector<Object>& self, int i)
+        {
+            if (i < 0 || i >= (int) self.size())
+                return Object::nil();
+            return self[i];
+        })
+        ("set", [](std::vector<Object>& self, int i, Object const& obj)
+        {
+            if (i < 0 || i >= (int) self.size())
+                return;
+            self[i] = obj;
+        })
+        ("size", [](std::vector<Object> const& self) { return (int) self.size(); })
+        ("append", [](std::vector<Object>& self, Object const& obj)
+        { self.push_back(obj); })
+        ("extend", [](std::vector<Object>& self, std::vector<Object> const& other)
+        { self.insert(self.end(), other.begin(), other.end()); }));
+
 }

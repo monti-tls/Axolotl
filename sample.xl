@@ -43,13 +43,35 @@ class Foo
         return "";
 };
 
-a = Foo(1, 2);
-b = Foo("4", 8);
-// a.polymorphic(8);
-// a.polymorphic("8");
-// a.polymorphic(a);
+fun foo()
+    return;
 
-// default == and < operators w/ serialize + classid
-// store constants by classid (not by classname)
-// problem w/ ctor wrapper (takes precedency over overloaded ctors)
-//   -> setup a single variadic __call__(...) that chooses polymorphically the ctor itself
+a = core.list(10, "a");
+a.set(5, "b");
+
+i = 0;
+while (i < a.size())
+{
+    my.print(a.get(i));
+    i = i+1;
+}
+
+// a = Foo(1, 2);
+
+// //n = core.int(5);
+
+// my.print(1.__classname__);
+// my.print(Foo.__classname__);
+// my.print(my.print.__classname__);
+// my.print(core.Nil().__classname__);
+
+// // a = Foo(1, 2);
+// // b = Foo("4", 8);
+// // a.polymorphic(8);
+// // a.polymorphic("8");
+// // a.polymorphic(a);
+
+// // default == and < operators w/ serialize + classid
+// // store constants by classid (not by classname)
+// // problem w/ ctor wrapper (takes precedency over overloaded ctors)
+// //   -> setup a single variadic __call__(...) that chooses polymorphically the ctor itself

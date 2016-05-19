@@ -28,7 +28,7 @@ namespace core
     class Signature
     {
     public:
-        typedef std::vector<Class::ClassId> TypeList;
+        typedef std::vector<Class::Id> TypeList;
 
     public:
         //! \param returns Only meaningful for C++ functions that can return void

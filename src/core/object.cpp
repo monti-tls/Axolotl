@@ -6,24 +6,14 @@
 
 using namespace core;
 
-Object Object::m_nil = Object();
-bool Object::m_nil_inited = false;
-
 Object::Object()
     : m_weak(false)
     , m_impl(new Impl())
 {
-    m_impl->kind = Kind::Nil;
     m_impl->meta = Some();
-    m_impl->classname = lang::std_nil_classname;
+    m_impl->pending_type_id = detail::uniqueTypeId<void>();
+    m_impl->pending = true;
     m_impl->refcount = 1;
-}
-
-Object::Object(Object const& cpy)
-{
-    m_impl = cpy.m_impl;
-    m_weak = cpy.m_weak;
-    M_incref();
 }
 
 Object::Object(Object const& cpy, bool weaken)
@@ -33,14 +23,23 @@ Object::Object(Object const& cpy, bool weaken)
     M_incref();
 }
 
-Object::Object(Object::Kind kind, Some&& meta, std::string const& classname, Class::ClassId classid)
+Object::Object(Some&& meta, Class const& the_class)
     : m_weak(false)
     , m_impl(new Impl())
 {
-    m_impl->kind = kind;
     m_impl->meta = std::move(meta);
-    m_impl->classname = classname;
-    m_impl->classid = classid;
+    m_impl->the_class = the_class;
+    m_impl->pending = false;
+    m_impl->refcount = 1;
+}
+
+Object::Object(Some&& meta, std::size_t pending_type_id)
+    : m_weak(false)
+    , m_impl(new Impl())
+{
+    m_impl->meta = std::move(meta);
+    m_impl->pending = true;
+    m_impl->pending_type_id = pending_type_id;
     m_impl->refcount = 1;
 }
 
@@ -59,11 +58,16 @@ Object& Object::operator=(Object const& cpy)
     return *this;
 }
 
-bool Object::isWeak() const
-{ return m_weak; }
+bool Object::weak() const
+{
+    return m_weak;
+}
 
 Object Object::weakref() const
-{ return Object(*this, true); }
+{
+    M_fixPending();
+    return Object(*this, true);
+}
 
 Object Object::copy() const
 {
@@ -73,47 +77,74 @@ Object Object::copy() const
     return cpy;
 }
 
-Object::Kind Object::kind() const
-{ return m_impl->kind; }
-
 Some const& Object::meta() const
-{ return m_impl->meta; }
+{
+    M_fixPending();
+    return m_impl->meta;
+}
 
-bool Object::isScalar() const
-{ return m_impl->kind == Kind::Scalar; }
+bool Object::pending() const
+{ return m_impl->pending; }
 
-bool Object::isCallable() const
-{ return m_impl->kind == Kind::Callable; }
+bool Object::callable() const
+{
+    M_fixPending();
+    return m_impl->meta.is<Callable>();
+    // return kind() == Kind::Callable;
+}
 
-bool Object::isInvokable() const
-{ return isCallable() || has(lang::std_call); }
+bool Object::invokable() const
+{
+    M_fixPending();
+    return callable() || has(lang::std_call);
+}
 
 bool Object::isNil() const
-{ return classname() == lang::std_nil_classname; }
+{
+    M_fixPending();
+    return classname() == lang::std_nil_classname;
+}
+
+Class const& Object::theClass() const
+{
+    M_fixPending();
+    return m_impl->the_class;
+}
 
 std::string Object::classname() const
-{ return m_impl->classname; }
+{ return theClass().classname(); }
 
-Class::ClassId Object::classid() const
-{ return m_impl->classid; }
+Class::Id Object::classid() const
+{ return theClass().classid(); }
 
 bool Object::has(std::string const& id) const
-{ return m_impl->members.count(id) >= 1; }
+{
+    M_fixPending();
+    return m_impl->members.count(id) >= 1;
+}
 
 bool Object::isPolymorphic(std::string const& id) const
-{ return m_impl->members.count(id) > 1; }
+{
+    M_fixPending();
+    return m_impl->members.count(id) > 1;
+}
 
 Object& Object::newPolymorphic(std::string const& id)
-{ return m_impl->members.insert(std::pair<std::string, Object>(id, Object::nil()))->second; }
-
-Object const& Object::findPolymorphic(std::string const& id, std::vector<Object> const& args) const
 {
+    M_fixPending();
+    return m_impl->members.insert(std::pair<std::string, Object>(id, Object::nil()))->second;
+}
+
+Object Object::findPolymorphic(std::string const& id, std::vector<Object> const& args) const
+{
+    M_fixPending();
     auto range = m_impl->members.equal_range(id);
 
+    // Search backward to follow the 'least specialized first' rule
     for (auto it = --range.second; ; --it)
     {
         Object& obj = it->second;
-        if (!obj.isCallable())
+        if (!obj.callable())
             throw std::runtime_error("core::Object::findPolymorphic: polymorphic member is not callable");
         if (obj.unwrap<Callable>().signature().match(args))
             return obj;
@@ -127,6 +158,7 @@ Object const& Object::findPolymorphic(std::string const& id, std::vector<Object>
 
 Object& Object::member(std::string const& id)
 {
+    M_fixPending();
     if (isPolymorphic(id))
         throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
 
@@ -138,6 +170,7 @@ Object& Object::member(std::string const& id)
 
 Object const& Object::member(std::string const& id) const
 {
+    M_fixPending();
     if (isPolymorphic(id))
         throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
     return m_impl->members.find(id)->second;
@@ -145,6 +178,7 @@ Object const& Object::member(std::string const& id) const
 
 Object Object::invokeMember(std::string const& name, std::vector<Object> const& args) const
 {
+    M_fixPending();
     if (!has(name))
     {
         throw std::runtime_error("member `" + name + "' does not exists in class `" + classname() + "'\n");
@@ -155,6 +189,7 @@ Object Object::invokeMember(std::string const& name, std::vector<Object> const& 
 
 Object Object::invokePolymorphic(std::string const& name, std::vector<Object> const& args) const
 {
+    M_fixPending();
     Object morph = findPolymorphic(name, args);
     if (morph.isNil())
         throw std::runtime_error("core::Object::findPolymorphic: no polymorphic member matches the current signature");
@@ -163,18 +198,22 @@ Object Object::invokePolymorphic(std::string const& name, std::vector<Object> co
 
 Object Object::invoke(std::vector<Object> const& args) const
 {
-    if (m_impl->kind == Kind::Callable)
+    M_fixPending();
+    if (callable())
     {
         if (!m_impl->meta.as<Callable>().signature().match(args))
             throw std::runtime_error("core::Object::invoke: signature mismatch");
 	    return m_impl->meta.as<Callable>().invoke(args);
     }
 
-    return invokePolymorphic(lang::std_call, args);
+    std::vector<Object> cpy = args;
+    cpy.insert(cpy.begin(), *this);
+    return invokePolymorphic(lang::std_call, cpy);
 }
 
 Object Object::method(std::string const& name, std::vector<Object> const& args) const
 {
+    M_fixPending();
     std::vector<Object> new_args = { *this };
     std::copy(args.begin(), args.end(), std::back_inserter(new_args));
 
@@ -249,50 +288,8 @@ Object::operator bool() const
 std::string Object::serialize() const
 { return invokeMember(lang::std_serialize, { *this }).unwrap<std::string>(); }
 
-Object const& Object::nil()
-{
-    if (m_nil_inited)
-    {
-        m_nil_inited = true;
-        setupBuiltinMembers(m_nil);
-    }
-    return m_nil;
-}
-
-void Object::setupBuiltinMembers(Object& obj)
-{
-    obj.newPolymorphic(lang::std_classname) = [](Object const& obj)
-                                              { return obj.classname(); };
-
-    obj.newPolymorphic(lang::std_classid)   = [](Object const& obj)
-                                              { return obj.classid(); };
-
-    obj.newPolymorphic(lang::std_equals) =
-    [](Object const& self, Object const& obj)
-    {
-        if (self.classname() != obj.classname())
-            return false;
-        return self.serialize() == obj.serialize();
-    };
-
-    obj.newPolymorphic(lang::std_lt) =
-    [](Object const& self, Object const& obj)
-    {
-        return (self.classname() + self.serialize()) < (obj.classname() + obj.serialize());
-    };
-
-    obj.newPolymorphic(lang::std_lte)       = [](Object const& self, Object const& obj)
-                                              { return (self < obj) || (self == obj); };
-
-    obj.newPolymorphic(lang::std_gt)        = [](Object const& self, Object const& obj)
-                                              { return obj < self; };
-
-    obj.newPolymorphic(lang::std_gte)       = [](Object const& self, Object const& obj)
-                                              { return (self > obj) || (self == obj); };
-
-    obj.newPolymorphic(lang::std_nequals)   = [](Object const& self, Object const& obj)
-                                              { return self != obj; };
-}
+Object Object::nil()
+{ return Object(); }
 
 void Object::M_incref()
 {
@@ -304,7 +301,8 @@ void Object::M_decref()
 {
     if (m_impl && !m_weak && !--m_impl->refcount)
     {
-        M_destroy();
+        if (!m_impl->pending)
+            M_destroy();
         delete m_impl;
     }
 }
@@ -313,4 +311,13 @@ void Object::M_destroy()
 {
     if (has(lang::std_del))
         invokeMember(lang::std_del, { weakref() });
+}
+
+void Object::M_fixPending() const
+{
+    if (!m_impl || !m_impl->pending)
+        return;
+
+    Class const& the_class = ObjectFactory::classFromTypeId(m_impl->pending_type_id);
+    *const_cast<Object*>(this) = the_class.construct(Some(m_impl->meta));
 }

@@ -52,7 +52,7 @@ bool Signature::match(std::vector<Object> const& args) const
 
     for (int i = 0; i < (int) args.size(); ++i)
     {
-        if (m_arguments[i] == Class::AnyClassId)
+        if (m_arguments[i] == Class::AnyId)
             continue;
 
         if (args[i].classid() != m_arguments[i])

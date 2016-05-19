@@ -43,11 +43,11 @@ namespace core
         template <typename T>
         struct Helper
         { static void helper() {} };
-    }
 
-    template <typename T>
-    static inline std::size_t typeId()
-    { return (std::size_t) &detail::Helper<unqualified<T>>::helper; }
+        template <typename T>
+        static inline std::size_t uniqueTypeId()
+        { return (std::size_t) &Helper<unqualified<T>>::helper; }
+    }
 
     class ObjectFactory
     {
@@ -95,7 +95,7 @@ namespace core
                            ConstructorListBuilder const& constructors,
                            MethodListBuilder const& methods)
         {
-            Class c(name, module_name);
+            Class c(name, module_name, false);
 
             for (auto const& m : constructors.list)
                 c.addMember(name, m);
@@ -103,116 +103,88 @@ namespace core
             for (auto const& m : methods.named_list)
                 c.addMember(m.first, m.second);
 
-            m_impl->classes[typeId<T>()] = c;
-
-            return m_impl->classes[typeId<T>()];
+            return (m_impl->classes[detail::uniqueTypeId<T>()] = c);
         }
 
-        static std::string typeName(std::size_t id)
+        static Class::Id classId(std::size_t type)
         {
-            if (id == typeId<Object>())
-                return lang::std_any_type;
+            if (type == detail::uniqueTypeId<Object>())
+                return Class::AnyId;
 
-            auto it = m_impl->classes.find(id);
+            auto it = m_impl->classes.find(type);
             if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeName: object type is not registered");
-
-            return it->second.classname();
-        }
-
-        template <typename T>
-        static std::string typeName()
-        { return typeName(typeId<T>()); }
-
-        static Class::ClassId typeClassId(std::size_t id)
-        {
-            if (id == typeId<Object>())
-                return Class::AnyClassId;
-
-            auto it = m_impl->classes.find(id);
-            if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeClassId: object type is not registered");
+                throw std::runtime_error("core::ObjectFactory::classId: unknown type id");
 
             return it->second.classid();
         }
 
         template <typename T>
-        static Class::ClassId typeClassId()
-        { return typeClassId(typeId<T>()); }
+        static Class::Id classId()
+        { return classId(detail::uniqueTypeId<T>()); }
 
-        static std::size_t typeIdFromClassName(std::string const& classname)
+        static std::size_t typeId(Class::Id classid)
         {
-            auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
-            [=](std::pair<std::size_t, Class> const& item)
-            { return item.second.classname() == classname; });
+            for (auto it = m_impl->classes.begin(); it != m_impl->classes.end(); ++it)
+            {
+                if (it->second.classid() == classid)
+                    return it->first;
+            }
 
+            throw std::runtime_error("core::ObjectFactory::typeId: unknown class id");
+        }
+
+        static std::string className(std::size_t type)
+        { return classFromTypeId(type).classname(); }
+
+        static Class const& classFromClassId(Class::Id classid)
+        {
+            for (auto it = m_impl->classes.begin(); it != m_impl->classes.end(); ++it)
+            {
+                if (it->second.classid() == classid)
+                    return it->second;
+            }
+
+            throw std::runtime_error("core::ObjectFactory::typeId: unknown class id");
+        }
+
+        static Class const& classFromTypeId(std::size_t type)
+        {
+            if (type == detail::uniqueTypeId<Object>())
+                return Class::AnyClass;
+
+            auto it = m_impl->classes.find(type);
             if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeIdFromClassName: type '" + classname + "' does not exists");
-            return it->first;
-        }
-
-        static std::size_t typeIdFromClassId(Class::ClassId classid)
-        {
-            auto it = std::find_if(m_impl->classes.begin(), m_impl->classes.end(),
-            [=](std::pair<std::size_t, Class> const& item)
-            { return item.second.classid() == classid; });
-
-            if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeIdFromClassId: type does not exists");
-            return it->first;
-        }
-
-        static Class const& typeClassFromName(std::string const& name)
-        {
-            return typeClass(typeIdFromClassName(name));
-        }
-
-        template <typename T>
-        static Class const& typeClass()
-        {
-            return typeClass(typeId<T>());
-        }
-
-        static Class const& typeClass(std::size_t id)
-        {
-            auto it = m_impl->classes.find(id);
-            if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::typeClass: type is not registered");
+                throw std::runtime_error("core::ObjectFactory::classFromTypeId: unknown type id");
 
             return it->second;
         }
 
-        static Object unserialize(std::string const& classname, std::string const& serialized)
+        static Object unserialize(Class::Id classid, std::string const& serialized)
         {
-            std::size_t id = typeIdFromClassName(classname);
-            return m_impl->classes[id].unserialize(serialized);
-        }
-
-        static Object unserialize(Class::ClassId classid, std::string const& serialized)
-        {
-            std::size_t id = typeIdFromClassId(classid);
+            std::size_t id = typeId(classid);
             return m_impl->classes[id].unserialize(serialized);
         }
 
         //! Trivial constructor
         static Object construct(Object const& cpy)
-        {
-            return cpy;
-        }
+        { return cpy; }
+
+        //! Helper callable constructor
+        static Object construct(Callable const& callable)
+        { return constructCallable(callable); }
 
         //! Generic constructor, without finalizer
         template <typename T>
         static Object construct(T const& value, typename std::enable_if<(not is_callable<T>::value) and (not has_finalizer<T>::value)>::type* dummy = nullptr)
-        {
-            return constructScalar<T>(value);
-        }
+        { return constructScalar<T>(value); }
 
         //! Generic constructor, with finalizer
         template <typename T>
         static Object construct(T const& value, typename std::enable_if<(not is_callable<T>::value) and has_finalizer<T>::value>::type* dummy = nullptr)
         {
             Object object = constructScalar<T>(value);
-            value.finalizeObject(object);
+            if (!object.pending())
+                value.finalizeObject(object);
             return object;
         }
 
@@ -220,12 +192,12 @@ namespace core
         template <typename T>
         static Object constructScalar(T const& value)
         {
-            if (typeId<T>() == typeId<Object>())
+            if (detail::uniqueTypeId<T>() == detail::uniqueTypeId<Object>())
                 return value;
 
-            std::map<std::size_t, Class>::iterator it = m_impl->classes.find(typeId<T>());
+            std::map<std::size_t, Class>::iterator it = m_impl->classes.find(detail::uniqueTypeId<T>());
             if (it == m_impl->classes.end())
-                throw std::runtime_error("ObjectFactory::construct: object type is not registered");
+                return Object(value, detail::uniqueTypeId<T>());
 
             return it->second.construct(Some(value));
         }
@@ -277,11 +249,7 @@ namespace core
         { return constructCallable(Callable(fun)); }
 
         static Object constructCallable(Some&& value)
-        {
-            return Object(Object::Kind::Callable, std::forward<Some>(value),
-                          lang::std_callable_classname,
-                          Class::hashClassId(lang::std_callable_classname, lang::std_core_module_name));
-        }
+        { return Object(std::forward<Some>(value), detail::uniqueTypeId<Callable>()); }
 
     private:
         static struct Impl

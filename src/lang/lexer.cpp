@@ -253,7 +253,7 @@ Token Lexer::getToken()
                 std::string lexeme = M_getLexeme();
 
                 Object obj = m_defs[m.state->defname].build_token;
-                if (obj.isInvokable())
+                if (obj.invokable())
                     obj = obj(lexeme);
                 
                 if (!obj.meta().is<Token>())

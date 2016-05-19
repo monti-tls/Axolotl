@@ -22,21 +22,27 @@
 
 #include <string>
 #include <list>
+#include <memory>
 
 namespace core
 {
     class Class
     {
     public:
-        typedef std::size_t ClassId;
+        typedef std::size_t Id;
         typedef std::pair<std::string, Object> Member;
-        static constexpr ClassId AnyClassId = 0;
+        static constexpr Id AnyId = 0;
 
+        static Class AnyClass;
     public:
-        Class(std::string const& classname = "", std::string const& module_name = "");
+        Class();
+        Class(std::string const& classname, std::string const& module_name, bool in_script = true);
+        Class(Class const& cpy);
         ~Class();
 
-        ClassId classid() const;
+        Class& operator=(Class const& cpy);
+
+        Id classid() const;
         std::string const& classname() const;
         void addMember(std::string const& name, Object const& value);
 
@@ -46,12 +52,21 @@ namespace core
         void finalizeObject(Object& self) const;
 
     private:
-        ClassId m_classid;
-        std::string m_classname;
-        std::list<Member> m_members;
+        void M_incref();
+        void M_decref();
+
+    private:
+        struct Impl
+        {
+            Id classid;
+            std::string classname;
+            std::list<Member> members;
+            bool in_script;
+            int refcount;
+        }* m_impl;
 
     public:
-        static ClassId hashClassId(std::string const& classname, std::string const& module_name);
+        static Id hashId(std::string const& classname, std::string const& module_name);
     };
 }
 

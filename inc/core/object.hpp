@@ -29,44 +29,37 @@ namespace core
     class Object
     {
     public:
-        enum class Kind
-        {
-            Nil,
-            Callable,
-            Scalar
-        };
-
-    public:
         Object();
-        Object(Object const& cpy);
-        Object(Object const& cpy, bool weaken);
+        Object(Object const& cpy, bool weaken = false);
 
         template <typename T>
         Object(T const& value);
 
-        Object(Kind kind, Some&& meta, std::string const& classname, Class::ClassId classid);
+        Object(Some&& meta, Class const& the_class);
+        Object(Some&& meta, std::size_t pending_type_id);
         ~Object();
 
         Object& operator=(Object const& cpy);
 
-        bool isWeak() const;
+        bool weak() const;
         Object weakref() const;
         Object copy() const;
 
-        Kind kind() const;
         Some const& meta() const;
 
-        bool isScalar() const;
-        bool isCallable() const;
-        bool isInvokable() const;
+        bool pending() const;
+        bool callable() const;
+        bool invokable() const;
         bool isNil() const;
+
+        Class const& theClass() const;
         std::string classname() const;
-        Class::ClassId classid() const;
+        Class::Id classid() const;
 
         bool has(std::string const& id) const;
         bool isPolymorphic(std::string const& id) const;
         Object& newPolymorphic(std::string const& id);
-        Object const& findPolymorphic(std::string const& id, std::vector<Object> const& args) const;
+        Object findPolymorphic(std::string const& id, std::vector<Object> const& args) const;
 
         Object& member(std::string const& id);
         Object const& member(std::string const& id) const;
@@ -101,24 +94,25 @@ namespace core
         operator bool() const;
         std::string serialize() const;
 
-        static Object const& nil();
-        static void setupBuiltinMembers(Object& obj);
+        static Object nil();
 
     private:
         void M_incref();
         void M_decref();
         void M_destroy();
+        void M_fixPending() const;
 
     private:
         bool m_weak;
         struct Impl
         {
-            Kind kind;
             Some meta;
-            std::string classname;
-            Class::ClassId classid;
+            Class the_class;
             std::multimap<std::string, Object> members;
             int refcount;
+
+            bool pending;
+            std::size_t pending_type_id;
         }* m_impl;
 
     private:

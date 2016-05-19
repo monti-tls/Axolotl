@@ -533,10 +533,13 @@ void Engine::M_invoke(Object fun, int argc)
     for (int i = 0; i < argc; ++i)
         argv[argc - i - 1] = M_pop();
 
-    while (fun.isInvokable() && !fun.isCallable())
+    if (fun.invokable() && !fun.callable())
+        argv.insert(argv.begin(), fun);
+
+    while (fun.invokable() && !fun.callable())
         fun = fun.findPolymorphic(lang::std_call, argv);
 
-    if (!fun.isCallable())
+    if (!fun.callable())
         M_error("M_invoke: object is not invokable");
 
     Callable call = fun.unwrap<Callable>();

@@ -39,7 +39,7 @@ namespace core
         {
         }
 
-        virtual Object invoke(std::vector<Object> const& args) = 0;
+        virtual Object invoke(std::vector<Object> args) = 0;
         virtual Signature signature() const = 0;
     };
 
@@ -68,7 +68,7 @@ namespace core
     public:
         using CallbackBase<TRet, TArgs...>::CallbackBase;
 
-        Object invoke(std::vector<Object> const& args);
+        Object invoke(std::vector<Object> args);
         Signature signature() const;
     };
 
@@ -78,7 +78,7 @@ namespace core
     public:
         using CallbackBase<void, TArgs...>::CallbackBase;
 
-        Object invoke(std::vector<Object> const& args);
+        Object invoke(std::vector<Object> args);
         Signature signature() const;
     };
 }

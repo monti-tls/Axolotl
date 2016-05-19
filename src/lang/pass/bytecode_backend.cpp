@@ -68,7 +68,7 @@ void ByteCodeBackend::visit(IR_FunDeclNode* node)
     {
         if (it->which() == Symbol::Argument)
         {
-            Class::ClassId id = it->data().unwrap<Class::ClassId>();
+            Class::Id id = it->data().unwrap<Class::Id>();
             if (!m_blob.addSignatureArgument(sigidx, id))
                 M_error(node, "internal error: unable to insert signature argument");
         }

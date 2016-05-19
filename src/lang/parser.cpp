@@ -524,7 +524,7 @@ void Parser::M_param_list_decl()
         }
     }
 
-    core::Class::ClassId id = core::Class::AnyClassId;
+    core::Class::Id id = core::Class::AnyId;
     if (pattern.size())
     {
         Symtab::FindResult res;
@@ -576,7 +576,7 @@ Node* Parser::M_fun_decl(bool in_class)
     //   'self' argument
     if (in_class)
     {
-        Symbol sym(Symbol::Argument, Symbol::Local, std_self, core::Class::AnyClassId);
+        Symbol sym(Symbol::Argument, Symbol::Local, std_self, core::Class::AnyId);
         if (!M_check(M_scope())->add(sym))
             error(name, "internal error: self argument name clash");
     }
