@@ -31,12 +31,12 @@ namespace core
     public:
         typedef std::size_t Id;
         typedef std::pair<std::string, Object> Member;
-        static constexpr Id AnyId = 0;
 
+        static Id AnyId;
         static Class AnyClass;
     public:
         Class();
-        Class(std::string const& classname, std::string const& module_name, bool in_script = true);
+        Class(std::string const& module_name, std::string const& classname, bool in_script = false);
         Class(Class const& cpy);
         ~Class();
 
@@ -50,6 +50,8 @@ namespace core
         Object unserialize(std::string const& serialized) const;
 
         void finalizeObject(Object& self) const;
+        Object& operator[](std::string const& name);
+        Object& operator[](const char* name);
 
     private:
         void M_incref();

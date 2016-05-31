@@ -43,11 +43,8 @@ class Foo
         return "";
 };
 
-fun foo()
-    return;
-
-a = core.list(10, "a");
-a.set(5, "b");
+a = core.list(2, "a");
+a.set(1, "b");
 
 i = 0;
 while (i < a.size())

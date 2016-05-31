@@ -32,7 +32,7 @@ namespace core
             throw std::runtime_error("wrong number of arguments");
 
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(args.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
-        return ObjectFactory::construct(applyTuple(this->m_fun, tp));
+        return construct(applyTuple(this->m_fun, tp));
     }
 
     template <typename TRet, typename... TArgs>
@@ -41,7 +41,7 @@ namespace core
         if (this->m_variadic)
             return Signature(true);
 
-        return Signature(explicit_pack2vec<Class::Id, typename always_of<Class::Id, TArgs>::type...>(ObjectFactory::classId<TArgs>()...), true);
+        return Signature(explicit_pack2vec<Class::Id, typename always_of<Class::Id, TArgs>::type...>(type_class<TArgs>().classid()...), true);
     }
 
     template <typename... TArgs>
@@ -64,7 +64,7 @@ namespace core
         if (this->m_variadic)
             return Signature(false);
 
-        return Signature(explicit_pack2vec<Class::Id, typename always_of<Class::Id, TArgs>::type...>(ObjectFactory::classId<TArgs>()...), false);
+        return Signature(explicit_pack2vec<Class::Id, typename always_of<Class::Id, TArgs>::type...>(type_class<TArgs>().classid()...), false);
     }
 }
 

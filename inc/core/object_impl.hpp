@@ -18,7 +18,7 @@
 #define __AXOLOTL_CORE_OBJECT_IMPL_H__
 
 #include "core/object.hpp"
-#include "core/object_factory.hpp"
+#include "core/type_registry.hpp"
 #include "core/ppack.hpp"
 
 namespace core
@@ -26,7 +26,7 @@ namespace core
     template <typename T>
     Object::Object(T const& value)
         : m_impl(nullptr)
-    { *this = ObjectFactory::construct(value); }
+    { *this = construct(value); }
 
     template <typename T>
     T& Object::unwrap()

@@ -318,6 +318,6 @@ void Object::M_fixPending() const
     if (!m_impl || !m_impl->pending)
         return;
 
-    Class const& the_class = ObjectFactory::classFromTypeId(m_impl->pending_type_id);
+    Class const& the_class = type_class(m_impl->pending_type_id);
     *const_cast<Object*>(this) = the_class.construct(Some(m_impl->meta));
 }

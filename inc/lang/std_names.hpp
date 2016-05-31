@@ -24,8 +24,8 @@ namespace lang
     
     constexpr auto std_core_module_name = "core";
 
-    constexpr auto std_callable_classname = "@callable";
-    constexpr auto std_nil_classname = "@nil";
+    constexpr auto std_callable_classname = "Callable";
+    constexpr auto std_nil_classname = "Nil";
     constexpr auto std_any_classname = "*";
     constexpr auto std_package_wildcard = "*";
 

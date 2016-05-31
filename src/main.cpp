@@ -24,29 +24,6 @@ using namespace nfa;
 using namespace ast;
 using namespace lib;
 
-class YoloModulo
-{
-public:
-    YoloModulo(int a = 0)
-        : m_a(a)
-    {}
-
-    ~YoloModulo()
-    {}
-
-    int getA()
-    { return m_a; }
-
-    void setA(int a)
-    { m_a = a; }
-
-    YoloModulo doubled()
-    { return YoloModulo(2 * m_a); }
-
-private:
-    int m_a;
-};
-
 void print(Object const& o)
 {
     if (o.meta().is<std::size_t>())
@@ -63,14 +40,6 @@ int main()
     {*/
         Module module("my");
         module.global("print") = &print;
-        module.global("YoloModulo") = ObjectFactory::record<YoloModulo>(
-            "my", "YoloModulo",
-            ObjectFactory::constructorList()
-            ([](int a) { return YoloModulo(a); }),
-            ObjectFactory::methodList()
-            ("getA", &YoloModulo::getA)
-            ("setA", &YoloModulo::setA)
-            ("doubled", &YoloModulo::doubled));
 
         Script script;
         script.addModule(module);

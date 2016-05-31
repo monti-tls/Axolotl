@@ -16,16 +16,8 @@ void Lang::record()
     ImportTable::addBuiltin(this_module);
 
     this_module.global(std_main) = [](){};
-    
-    this_module.global("Token") = ObjectFactory::record<Token>("lang", "Token",
-        ObjectFactory::constructorList()
-        ([](int which, Object const& what) { return Token(which, what); }),
-        ObjectFactory::methodList()
-        (std_equals, [](Token const& tok, Token const& other) { return tok.which() == other.which(); })
-        (std_equals, [](Token const& tok, int which)          { return tok.which() == which; })
-        ("which",    [](Token const& tok)                     { return tok.which(); })
-        ("what",     [](Token const& tok)                     { return tok.what(); })
-        ("line",     [](Token const& tok)                     { return tok.where().line; })
-        ("col",      [](Token const& tok)                     { return tok.where().col; })
-        ("filename", [](Token const& tok)                     { return tok.where().filename; }));
+
+    Class c("lang", "Token");
+    this_module.global(c.classname()) = c;
+    associate<Token>(c);
 }

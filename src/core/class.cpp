@@ -22,15 +22,14 @@
 
 using namespace core;
 
-constexpr Class::Id Class::AnyId;
-
-Class Class::AnyClass = Class(lang::std_any_classname, lang::std_core_module_name);
+Class::Id Class::AnyId;
+Class Class::AnyClass = Class();
 
 Class::Class()
     : m_impl(nullptr)
 {}
 
-Class::Class(std::string const& classname, std::string const& module_name, bool in_script)
+Class::Class(std::string const& module_name, std::string const& classname, bool in_script)
     : m_impl(new Impl())
 {
     m_impl->refcount = 1;
@@ -156,6 +155,17 @@ void Class::finalizeObject(Object& self) const
         self.newPolymorphic(lang::std_call) =
         [](Object const&) { throw std::runtime_error("object is not constructible"); };
     }*/
+}
+
+Object& Class::operator[](std::string const& name)
+{
+    m_impl->members.push_back(std::make_pair(name, Object()));
+    return m_impl->members.back().second;
+}
+
+Object& Class::operator[](const char* name)
+{
+    return operator[](std::string(name));
 }
 
 Class::Id Class::hashId(std::string const& classname, std::string const& module_name)

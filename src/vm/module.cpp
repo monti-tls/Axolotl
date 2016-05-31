@@ -295,7 +295,7 @@ void Module::M_processTypeSpecs()
         if (!m_impl->blob.string(tspec->ts_name, type_name))
             throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid type specification");
 
-        Class c(type_name, m_impl->name);
+        Class c(m_impl->name, type_name, true);
 
         m_impl->blob.foreachTypeSpecSymbol(tidx, [&](blob_idx symidx)
         {
@@ -321,9 +321,9 @@ void Module::M_processConstants()
         if (!m_impl->blob.string(cst->c_serialized, serialized))
             throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
         
-        addConstant(ObjectFactory::unserialize(cst->c_classid, serialized));
+        addConstant(class_from_classid(cst->c_classid).unserialize(serialized));
     });
 }
 
 Object Module::M_makeFunction(blob_symbol* symbol) const
-{ return ObjectFactory::constructCallable(Callable(Function(*this, symbol))); }
+{ return Callable(Function(*this, symbol)); }

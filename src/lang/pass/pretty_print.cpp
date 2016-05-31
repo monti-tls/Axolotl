@@ -1,6 +1,7 @@
 #include "lang/pass/pretty_print.hpp"
 #include "lang/ast/node.hpp"
 #include "lang/ast/node_visitor.hpp"
+#include "lang/std_names.hpp"
 
 using namespace lang;
 using namespace ast;

@@ -83,7 +83,7 @@ void Script::fromStream(std::istream& is)
     m_module = Module(std_main, m_import_table);
     m_import_table = nullptr;
 
-    Compiler* compiler = new Compiler(m_module, is, Compiler::DIS_BYTECODE);
+    Compiler* compiler = new Compiler(m_module, is);
     Module module(compiler->compile());
     delete compiler;
 
