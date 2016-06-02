@@ -24,6 +24,7 @@ using namespace core;
 
 Class::Id Class::AnyId;
 Class Class::AnyClass = Class();
+std::map<Class::Id, std::string> Class::m_classnames;
 
 Class::Class()
     : m_impl(nullptr)
@@ -33,7 +34,7 @@ Class::Class(std::string const& module_name, std::string const& classname, bool 
     : m_impl(new Impl())
 {
     m_impl->refcount = 1;
-    m_impl->classid = hashId(classname, module_name);
+    m_impl->classid = hashId(module_name, classname);
     m_impl->classname = classname;
     m_impl->in_script = in_script;
 
@@ -66,7 +67,7 @@ Class::Class(std::string const& module_name, std::string const& classname, bool 
 
     addMember(lang::std_nequals,
     [](Object const& self, Object const& obj)
-    { return self != obj; });
+    { return !(self == obj); });
 }
 
 Class::Class(Class const& cpy)
@@ -168,8 +169,15 @@ Object& Class::operator[](const char* name)
     return operator[](std::string(name));
 }
 
-Class::Id Class::hashId(std::string const& classname, std::string const& module_name)
-{ return std::hash<std::string>{}(classname + "." + module_name); }
+Class::Id Class::hashId(std::string const& module_name, std::string const& classname)
+{
+    Id classid = std::hash<std::string>{}(classname + "." + module_name);
+    //m_classnames[classid] = classname + "." + module_name;
+    return classid;
+}
+
+std::string Class::hashIdClassname(Id classid)
+{ return m_classnames[classid]; }
 
 void Class::M_incref()
 {

@@ -79,6 +79,7 @@ Node* Parser::M_expr_0()
         case TOK_LIT_CHAR:
         case TOK_LIT_STRING:
         case TOK_LIT_INTEGER:
+        case TOK_LIT_FLOATING:
         {
             Token start_token = M_get();
 
@@ -189,8 +190,7 @@ Node* Parser::M_expr_2()
                 new_node->addSibling(node);
                 new_node->name = std_neg;
 
-                node = new_node;
-                break;
+                return new_node;
             }
 
             case TOK_LOGIC_NOT:
@@ -202,8 +202,7 @@ Node* Parser::M_expr_2()
                 new_node->addSibling(node);
                 new_node->name = M_operatorMethodName(start_token);
 
-                node = new_node;
-                break;
+                return new_node;
             }
         }
     }
@@ -597,9 +596,12 @@ Node* Parser::M_fun_decl(bool in_class)
     node->attachSymtab(M_popScope());
 
     // Add the function to the current scope
-    Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
-    if (!M_check(M_scope())->add(symbol, in_class ? true : false))
-        error(name, "name clash");
+    if (!in_class)
+    {
+        Symbol symbol(Symbol::Variable, Symbol::Auto, node->name);
+        if (!M_check(M_scope())->add(symbol, in_class ? true : false))
+            error(name, "name clash");
+    }
 
     return node;
 }
@@ -613,15 +615,14 @@ Node* Parser::M_class_decl()
 
     // Add the class to the current scope
     Symbol symbol(Symbol::Variable, Symbol::Auto, classname);
-    if (!M_check(M_scope())->add(symbol))
+    if (!M_check(M_scope())->top()->add(symbol))
         error(name, "name clash");
 
-    M_pushScope();
+    // M_pushScope();
 
     // Setup a bare class global here to allow the use
     //   of polymorphic patterns
-    // vm::Module
-    m_module.global(classname) = core::Class(classname, m_module.name());
+    m_module.global(classname) = core::Class(m_module.name(), classname);
 
     M_eat(TOK_LCURL);
 
@@ -642,7 +643,7 @@ Node* Parser::M_class_decl()
     ClassDeclNode* node = new ClassDeclNode(start_token);
     node->name = name.what().unwrap<std::string>();
     node->addSibling(body);
-    node->attachSymtab(M_popScope());
+    // node->attachSymtab(M_popScope());
 
     return node;
 }
@@ -869,11 +870,42 @@ void Parser::M_setupLexer()
 
     M_define("LIT_CHAR", "'\\'' '\\\\'? . '\\''",
             [](std::string const& lexeme)
-            { return Token(TOK_LIT_CHAR, (char) lexeme[0]); });
+            {
+                char val = lexeme[1];
+                if (val == '\\')
+                {
+                    switch (lexeme[2])
+                    {
+                        case '\\':
+                            break;
+
+                        case 'n':
+                            val = '\n';
+                            break;
+
+                        case 't':
+                            val = '\t';
+                            break;
+
+                        case '\'':
+                            val = '\'';
+                            break;
+
+                        default:
+                            val = '\0';
+                            break;
+                    }
+                }
+                return Token(TOK_LIT_CHAR, val);
+            });
 
     M_define("LIT_STRING", "'\"' ('[^\"\\\\]' | ('\\\\' .))* '\"'",
             [](std::string const& lexeme)
-            { return Token(TOK_LIT_STRING, lexeme); });
+            { return Token(TOK_LIT_STRING, lexeme.substr(1, lexeme.size()-2)); });
+
+    M_define("LIT_FLOATING", "'[0-9]'+ '.' '[0-9]'+",
+            [](std::string const& lexeme)
+            { return Token(TOK_LIT_FLOATING, std::stof(lexeme)); });
 
     M_define("LIT_INTEGER", "('[0-9]'+) | ((\"0x\" | \"0X\") '[0-9a-fA-F]'+) | ('-'? '0' '[0-7]'+) | ((\"0b\" | \"0B\") '[0-1]'+)",
             [](std::string const& lexeme)

@@ -22,6 +22,7 @@
 
 #include <string>
 #include <list>
+#include <map>
 #include <memory>
 
 namespace core
@@ -68,7 +69,11 @@ namespace core
         }* m_impl;
 
     public:
-        static Id hashId(std::string const& classname, std::string const& module_name);
+        static Id hashId(std::string const& module_name, std::string const& classname);
+        static std::string hashIdClassname(Id classid);
+
+    private:
+        static std::map<Id, std::string> m_classnames;
     };
 }
 

@@ -1,74 +1,142 @@
 import core;
-import my;
+import io;
 
-class Foo
+fun fabs(x : core.float)
 {
-    fun Foo(a : core.int, b)
-    {
-        my.print("int ctor");
-        my.print(a);
-        my.print(b);
-        self.a = a;
-    }
-
-    fun Foo(a : core.string, b)
-    {
-        my.print("string ctor");
-        my.print(a);
-        my.print(b);
-        self.a = a;
-    }
-
-    fun polymorphic(a)
-        my.print("default version");
-
-    fun polymorphic(a : core.int)
-    {
-        my.print("int version");
-        my.print(a);
-    }
-
-    fun polymorphic(a : core.string)
-    {
-        my.print("string version");
-        my.print(a);
-    }
-
-    fun polymorphic(a : Foo)
-    {
-        my.print("Foo version");
-    }
-
-    fun __serialize__()
-        return "";
-};
-
-a = core.list(2, "a");
-a.set(1, "b");
-
-i = 0;
-while (i < a.size())
-{
-    my.print(a.get(i));
-    i = i+1;
+    if (x < 0.0)
+        return -x;
+    return x;
 }
 
-// a = Foo(1, 2);
+fun bab_sqrt(x : core.float)
+{
+    xn = x;
+    while (fabs(x - xn*xn) > 0.0001)
+        xn = 0.5 * (xn + x / xn);
+    return xn;
+}
 
-// //n = core.int(5);
+class Complex
+{
+    fun Complex(a : core.float, b : core.float)
+    {
+        self.a = a;
+        self.b = b;
+    }
 
-// my.print(1.__classname__);
-// my.print(Foo.__classname__);
-// my.print(my.print.__classname__);
-// my.print(core.Nil().__classname__);
+    fun Complex(a : core.float)
+    {
+        self.a = a;
+        self.b = 0.0;
+    }
 
-// // a = Foo(1, 2);
-// // b = Foo("4", 8);
-// // a.polymorphic(8);
-// // a.polymorphic("8");
-// // a.polymorphic(a);
+    fun real() return self.a;
+    fun imag() return self.b;
+    fun conj() return Complex(self.a, -self.b);
+    fun mag2() return (self * self.conj()).real();
+    fun mag() return bab_sqrt(self.mag2());
 
-// // default == and < operators w/ serialize + classid
-// // store constants by classid (not by classname)
-// // problem w/ ctor wrapper (takes precedency over overloaded ctors)
-// //   -> setup a single variadic __call__(...) that chooses polymorphically the ctor itself
+    fun sqrt()
+    {
+        r = self.mag();
+        z = self + r;
+        q = z.mag();
+        return z * bab_sqrt(r) / q;
+    }
+
+    fun __add__(other : core.float) return self + Complex(other);
+    fun __sub__(other : core.float) return self - Complex(other);
+    fun __mul__(other : core.float) return self * Complex(other);
+    fun __div__(other : core.float) return Complex(self.a / other, self.b / other);
+    fun __neg__() return Complex(-self.a, -self.b);
+    
+    fun __add__(other : Complex)
+        return Complex(self.a + other.a, self.b + other.b);
+    
+    fun __sub__(other : Complex)
+        return Complex(self.a - other.a, self.b - other.b);
+
+    fun __mul__(other : Complex)
+        return Complex(self.a * other.a - self.b * other.b, self.a * other.b + self.b * other.a);
+
+    fun __div__(other : Complex)
+        return (self * other.conj()) / other.mag2();
+
+    fun __equals__(other : Complex)
+        return self.a == other.a && self.b == other.b;
+
+    fun __lt__(other : Complex)
+        return self.a < other.a && self.b < other.b;
+
+    fun __serialize__()
+    {
+        str = self.b.__serialize__();
+        if (str.get(0) != '-')
+            str = "+" + str;
+        return self.a.__serialize__() + str + "i";
+    }
+};
+
+fun quicksort(l : core.list)
+    _quicksort(l, 0, l.size()-1);
+
+fun _quicksort(l : core.list, low : core.int, high : core.int)
+{
+    if (low < high)
+    {
+        p = _partition(l, low, high);
+        _quicksort(l, low, p - 1);
+        _quicksort(l, p + 1, high);
+    }
+}
+
+fun _partition(l : core.list, low : core.int, high : core.int)
+{
+    pivot = l.get(high);
+
+    i = low;
+    j = low;
+    while (j < high)
+    {
+        if (l.get(j) <= pivot)
+        {
+            l.swap(i, j);
+            i = i+1;
+        }
+        j = j+1;
+    }
+
+    l.swap(i, high);
+
+    return i;
+}
+
+l = core.list();
+l.append(Complex(2.0, 4.0));
+l.append(Complex(1.0, 8.0));
+l.append(Complex(8.0, 2.0));
+l.append(Complex(4.0, 1.0));
+
+io.println("Unsorted list : ", l);
+
+quicksort(l);
+
+io.println("Sorted list : ", l);
+
+i = 0;
+while (i < l.size())
+{
+    l.set(i, l.get(i).sqrt());
+    i = i + 1;
+}
+
+io.println("After sqrt : ", l);
+
+i = 0;
+while (i < l.size())
+{
+    l.set(i, l.get(i)*l.get(i));
+    i = i + 1;
+}
+
+io.println("After square again : ", l);

@@ -16,8 +16,7 @@ namespace core
             Class::AnyId = Class::AnyClass.classid();
             type_registry->insert(std::make_pair(uniqueTypeId<Object>(), Class::AnyClass));
 
-            lib::Core::record();
-            lib::Lang::record();
+            lib::recordAll();
         }
 
         static void __attribute__((destructor)) type_registry_fini()

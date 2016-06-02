@@ -7,6 +7,8 @@
 
 #include <sstream>
 #include <cmath>
+#include <vector>
+#include <algorithm>
 
 using namespace lib;
 using namespace core;
@@ -70,6 +72,7 @@ void Core::record()
         c[std_mul]    = [](int a, int b) { return a * b; };
         c[std_div]    = [](int a, int b) { return a / b; };
         c[std_mod]    = [](int a, int b) { return a % b; };
+        c[std_neg]    = [](int a)        { return -a; };
         c[std_equals] = [](int a, int b) { return a == b; };
         c[std_lt]     = [](int a, int b) { return a < b; };
         c[std_serialize] = [](int a)
@@ -95,6 +98,7 @@ void Core::record()
         c[std_mul]    = [](std::size_t a, std::size_t b) { return a * b; };
         c[std_div]    = [](std::size_t a, std::size_t b) { return a / b; };
         c[std_mod]    = [](std::size_t a, std::size_t b) { return a % b; };
+        c[std_neg]    = [](std::size_t a)                { return -a; };
         c[std_equals] = [](std::size_t a, std::size_t b) { return a == b; };
         c[std_lt]     = [](std::size_t a, std::size_t b) { return a < b; };
         c[std_serialize] = [](std::size_t a)
@@ -120,6 +124,7 @@ void Core::record()
         c[std_mul]    = [](float a, float b) { return a * b; };
         c[std_div]    = [](float a, float b) { return a / b; };
         c[std_mod]    = [](float a, float b) { return std::fmod(a , b); };
+        c[std_neg]    = [](float a)          { return -a; };
         c[std_equals] = [](float a, float b) { return a == b; };
         c[std_lt]     = [](float a, float b) { return a < b; };
         c[std_serialize] = [](float a)
@@ -159,9 +164,13 @@ void Core::record()
     }
     {
         Class c("core", "string");
-        c["string"]     = [](std::string const& a) { return a; };
-        c[std_equals] = [](std::string const& a, std::string const& b) { return a == b; };
-        c[std_lt]     = [](std::string const& a, std::string const& b) { return a < b; };
+        c["string"]      = [](std::string const& a) { return a; };
+        c[std_add]       = [](std::string self, std::string const& b) { self += b; return self; };
+        c[std_equals]    = [](std::string const& a, std::string const& b) { return a == b; };
+        c[std_lt]        = [](std::string const& a, std::string const& b) { return a < b; };
+        c["get"]         = [](std::string const& a, int i) { return a.at(i); };
+        c["size"]        = [](std::string const& a) { return (int) a.size(); };
+        c["set"]         = [](std::string& a, int i, char c) { a[i] = c; };
         c[std_serialize] = [](std::string const& a)
         {
             return a;
@@ -207,6 +216,25 @@ void Core::record()
         c["size"] = [](std::vector<Object>& self)
         {
             return (int) self.size();
+        };
+        c["append"] = [](std::vector<Object>& self, Object const& obj)
+        {
+            self.push_back(obj);
+        };
+        c["extend"] = [](std::vector<Object>& self, std::vector<Object> const& list)
+        {
+            std::copy(list.begin(), list.end(), std::back_inserter(self));
+        };
+        c["swap"] = [](std::vector<Object>& self, int i, int j)
+        {
+            Object temp = self.at(i);
+            self[i] = self.at(j);
+            self[j] = temp;
+        };
+        c["apply"] = [](std::vector<Object>& self, Object const& function)
+        {
+            for (auto& elem : self)
+                elem = function(elem);
         };
         this_module.global(c.classname()) = c;
         associate<std::vector<Object>>(c);

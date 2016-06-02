@@ -14,15 +14,21 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LIB_FORWARD_H_
-#define __AXOLOTL_LIB_FORWARD_H_
+#ifndef __AXOLOTL_LIB_IO_H__
+#define __AXOLOTL_LIB_IO_H__
+
+#include "core/forward.hpp"
+#include "core/some.hpp"
+#include "vm/forward.hpp"
 
 namespace lib
 {
-    class Core;
-    class Io;
-    class Lang;
-    class Dict;
+    class Io
+    {
+    public:
+        static void put(core::Object const& obj);
+        static void record();
+    };
 }
 
-#endif // __AXOLOTL_LIB_FORWARD_H_
+#endif // __AXOLOTL_LIB_IO_H__

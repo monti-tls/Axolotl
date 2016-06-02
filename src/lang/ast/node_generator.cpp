@@ -14,8 +14,8 @@ NodeGenerator::NodeGenerator(ParserBase* parser, bool nofollow)
 
 NodeGenerator::NodeGenerator(NodeGenerator* gen, bool nofollow)
     : NodeVisitor(gen, nofollow)
-    , m_label_alloc(0)
-    , m_label_alloc_ptr(&gen->m_label_alloc)
+    , m_label_alloc(-1)
+    , m_label_alloc_ptr(gen->m_label_alloc_ptr)
 {}
 
 NodeGenerator::~NodeGenerator()

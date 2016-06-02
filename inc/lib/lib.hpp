@@ -16,9 +16,9 @@
 
 #include "lib/forward.hpp"
 #include "lib/core.hpp"
+#include "lib/io.hpp"
 #include "lib/lang.hpp"
 #include "lib/dict.hpp"
-#include "vm/forward.hpp"
 
 namespace lib
 {
