@@ -217,7 +217,7 @@ b = BigInt("-12345678910111213141516171819");
 io.println("BigInt: ", b);
 
 sum = 0;
-i = 8500;
+i = 32;
 while (true)
 {
     sum += i;
@@ -227,3 +227,5 @@ while (true)
 }
 
 io.println(sum);
+
+io.println(nil.__classname__);

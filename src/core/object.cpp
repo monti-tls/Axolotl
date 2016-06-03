@@ -310,7 +310,11 @@ Object::operator bool() const
 { return unwrap<bool>(); }
 
 std::string Object::serialize() const
-{ return invokeMember(lang::std_serialize, { *this }).unwrap<std::string>(); }
+{
+    if (isNil())
+        return "";
+    return invokeMember(lang::std_serialize, { *this }).unwrap<std::string>();
+}
 
 Object Object::nil()
 { return Object(); }

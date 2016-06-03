@@ -82,6 +82,7 @@ Node* Parser::M_expr_0()
         case TOK_LIT_FLOATING:
         case TOK_LIT_TRUE:
         case TOK_LIT_FALSE:
+        case TOK_LIT_NIL:
         {
             Token start_token = M_get();
 
@@ -906,6 +907,9 @@ void Parser::M_setupLexer()
     
     M_define("LIT_FALSE", "\"false\"",
         [](std::string const&) { return Token(TOK_LIT_FALSE, false); });
+    
+    M_define("LIT_NIL", "\"nil\"",
+        [](std::string const&) { return Token(TOK_LIT_NIL, core::Object::nil()); });
 
     M_define("IDENTIFIER", "'[_a-zA-Z]' '[_a-zA-Z0-9]'*",
             [&](std::string const& lexeme)
