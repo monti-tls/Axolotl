@@ -213,5 +213,17 @@ while (i < l.size())
 
 io.println("After square again : ", l);
 
-b = BigInt("-1234567-8910111213141516171819");
+b = BigInt("-12345678910111213141516171819");
 io.println("BigInt: ", b);
+
+sum = 0;
+i = 8500;
+while (true)
+{
+    sum += i;
+    i -= 1;
+    if (i <= 0)
+        break;
+}
+
+io.println(sum);

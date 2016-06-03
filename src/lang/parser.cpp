@@ -80,6 +80,8 @@ Node* Parser::M_expr_0()
         case TOK_LIT_STRING:
         case TOK_LIT_INTEGER:
         case TOK_LIT_FLOATING:
+        case TOK_LIT_TRUE:
+        case TOK_LIT_FALSE:
         {
             Token start_token = M_get();
 
@@ -898,6 +900,12 @@ void Parser::M_setupLexer()
     M_define("KW_AS",       "\"as\"",       Token(TOK_KW_AS));
     M_define("KW_BREAK",    "\"break\"",    Token(TOK_KW_BREAK));
     M_define("KW_CONTINUE", "\"continue\"", Token(TOK_KW_CONTINUE));
+    
+    M_define("LIT_TRUE", "\"true\"",
+        [](std::string const&) { return Token(TOK_LIT_TRUE, true); });
+    
+    M_define("LIT_FALSE", "\"false\"",
+        [](std::string const&) { return Token(TOK_LIT_FALSE, false); });
 
     M_define("IDENTIFIER", "'[_a-zA-Z]' '[_a-zA-Z0-9]'*",
             [&](std::string const& lexeme)
