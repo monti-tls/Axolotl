@@ -1,0 +1,143 @@
+// -*- mode: c++;-*-
+
+import core;
+import io;
+
+fun fabs(x : core.float)
+{
+    if (x < 0.0)
+        return -x;
+    return x;
+}
+
+fun fsqrt(x : core.float)
+{
+    xn = x;
+    while (fabs(x - xn*xn) > 0.0001)
+        xn = 0.5 * (xn + x / xn);
+    return xn;
+}
+
+class Complex
+{
+    fun Complex(a : core.float, b : core.float)
+    {
+        self.a = a;
+        self.b = b;
+    }
+
+    fun Complex(a : core.float)
+    {
+        self.a = a;
+        self.b = 0.0;
+    }
+
+    fun real() return self.a;
+    fun imag() return self.b;
+    fun conj() return Complex(self.a, -self.b);
+    fun mag2() return (self * self.conj()).real();
+    fun mag() return fsqrt(self.mag2());
+
+    fun sqrt()
+    {
+        r = self.mag();
+        z = self + r;
+        q = z.mag();
+        return z * fsqrt(r) / q;
+    }
+
+    fun __add__(other : core.float) return self + Complex(other);
+    fun __sub__(other : core.float) return self - Complex(other);
+    fun __mul__(other : core.float) return self * Complex(other);
+    fun __div__(other : core.float) return Complex(self.a / other, self.b / other);
+    fun __neg__() return Complex(-self.a, -self.b);
+    
+    fun __add__(other : Complex)
+        return Complex(self.a + other.a, self.b + other.b);
+    
+    fun __sub__(other : Complex)
+        return Complex(self.a - other.a, self.b - other.b);
+
+    fun __mul__(other : Complex)
+        return Complex(self.a * other.a - self.b * other.b, self.a * other.b + self.b * other.a);
+
+    fun __div__(other : Complex)
+        return (self * other.conj()) / other.mag2();
+
+    fun __equals__(other : Complex)
+        return self.a == other.a && self.b == other.b;
+
+    fun __lt__(other : Complex)
+        return self.a < other.a && self.b < other.b;
+
+    fun __serialize__()
+    {
+        str = self.b.__serialize__();
+        if (str.get(0) != '-')
+            str = "+" + str;
+        return self.a.__serialize__() + str + "i";
+    }
+};
+
+fun quicksort(l : core.list)
+    _quicksort(l, 0, l.size()-1);
+
+fun _quicksort(l : core.list, low : core.int, high : core.int)
+{
+    if (low < high)
+    {
+        p = _partition(l, low, high);
+        _quicksort(l, low, p - 1);
+        _quicksort(l, p + 1, high);
+    }
+}
+
+fun _partition(l : core.list, low : core.int, high : core.int)
+{
+    pivot = l.get(high);
+
+    i = low;
+    j = low;
+    while (j < high)
+    {
+        if (l.get(j) <= pivot)
+        {
+            l.swap(i, j);
+            i += 1;
+        }
+        j += 1;
+    }
+
+    l.swap(i, high);
+
+    return i;
+}
+
+l = core.list();
+l.append(Complex(2.0, 4.0));
+l.append(Complex(1.0, 8.0));
+l.append(Complex(8.0, 2.0));
+l.append(Complex(4.0, 1.0));
+
+io.println("Unsorted list : ", l);
+
+quicksort(l);
+
+io.println("Sorted list : ", l);
+
+i = 0;
+while (i < l.size())
+{
+    l.set(i, l.get(i).sqrt());
+    i += 1;
+}
+
+io.println("After sqrt : ", l);
+
+i = 0;
+while (i < l.size())
+{
+    l.set(i, l.get(i)*l.get(i));
+    i += 1;
+}
+
