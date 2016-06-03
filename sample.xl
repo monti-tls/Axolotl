@@ -10,7 +10,7 @@ fun fabs(x : core.float)
     return x;
 }
 
-fun bab_sqrt(x : core.float)
+fun fsqrt(x : core.float)
 {
     xn = x;
     while (fabs(x - xn*xn) > 0.0001)
@@ -36,14 +36,14 @@ class Complex
     fun imag() return self.b;
     fun conj() return Complex(self.a, -self.b);
     fun mag2() return (self * self.conj()).real();
-    fun mag() return bab_sqrt(self.mag2());
+    fun mag() return fsqrt(self.mag2());
 
     fun sqrt()
     {
         r = self.mag();
         z = self + r;
         q = z.mag();
-        return z * bab_sqrt(r) / q;
+        return z * fsqrt(r) / q;
     }
 
     fun __add__(other : core.float) return self + Complex(other);
@@ -113,76 +113,6 @@ fun _partition(l : core.list, low : core.int, high : core.int)
     return i;
 }
 
-class BigInt
-{
-    fun BigInt(x : core.int)
-    {
-        self.base = 10;
-
-        if (x < 0)
-        {
-            self.sign = -1;
-            self.digits = core.list(1, x);
-        }
-        else
-        {
-            self.sign = 1;
-            self.digits = core.list(1, x);
-        }
-    }
-
-    fun BigInt(s : core.string)
-    {
-        self.base = 10;
-        self.digits = core.list();
-
-        if (s.get(0) == '-')
-            self.sign = -1;
-        else
-            self.sign = 1;
-
-        size = s.size();
-        while (size > 0 && (self.sign > 0 || size > 1))
-        {
-            length = 0;
-            num = 0;
-            prefix = 1;
-
-            i = size - 1;
-            while (i >= 0 && i >= size - 1)
-            {
-                d = s.get(i);
-                if (d > '9' || d < '0')
-                    io.println("bogus digit '", d, "'");
-
-                num = num + (s.get(i) - '0') * prefix;
-                prefix = prefix * 10;
-                length = length + 1;
-                i -= 1;
-            }
-
-            self.digits.append(num);
-            size -= length;
-        }
-    }
-
-    fun __serialize__()
-    {
-        out = "";
-        if (self.sign < 0)
-            out.append('-');
-
-        i = self.digits.size() - 1;
-        while (i >= 0)
-        {
-            out.extend(self.digits.get(i).__serialize__());
-            i -= 1;
-        }
-
-        return out;
-    }
-};
-
 l = core.list();
 l.append(Complex(2.0, 4.0));
 l.append(Complex(1.0, 8.0));
@@ -211,21 +141,3 @@ while (i < l.size())
     i += 1;
 }
 
-io.println("After square again : ", l);
-
-b = BigInt("-12345678910111213141516171819");
-io.println("BigInt: ", b);
-
-sum = 0;
-i = 32;
-while (true)
-{
-    sum += i;
-    i -= 1;
-    if (i <= 0)
-        break;
-}
-
-io.println(sum);
-
-io.println(nil.__classname__);
