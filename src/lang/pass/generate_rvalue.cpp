@@ -15,7 +15,7 @@ void GenerateRValue::visit(GlobalRefNode* node)
     IR_LoadGlobalNode* new_node = new IR_LoadGlobalNode(node->startToken());
     new_node->name = node->name;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -24,7 +24,7 @@ void GenerateRValue::visit(LocalRefNode* node)
     IR_LoadLocalNode* new_node = new IR_LoadLocalNode(node->startToken());
     new_node->index = node->index;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -33,7 +33,7 @@ void GenerateRValue::visit(ConstRefNode* node)
     IR_LoadConstNode* new_node = new IR_LoadConstNode(node->startToken());
     new_node->index = node->index;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -43,7 +43,7 @@ void GenerateRValue::visit(InvokeNode* node)
     if (node->siblings().size() > 1)
     {
         // Avoid the nofollow flag for argument lists
-        M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
+        emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
         argc = (int) node->siblings()[1]->chainLength();
     }
 
@@ -52,7 +52,7 @@ void GenerateRValue::visit(InvokeNode* node)
     IR_InvokeNode* new_node = new IR_InvokeNode(node->startToken());
     new_node->argc = argc;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -63,7 +63,7 @@ void GenerateRValue::visit(MemberNode* node)
     IR_LoadMemberNode* new_node = new IR_LoadMemberNode(node->startToken());
     new_node->name = node->name;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -73,7 +73,7 @@ void GenerateRValue::visit(MethodNode* node)
     if (node->siblings().size() > 1)
     {
         // Avoid the nofollow flag for argument lists
-        M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
+        emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
         argc = (int) node->siblings()[1]->chainLength();
     }
 
@@ -83,7 +83,7 @@ void GenerateRValue::visit(MethodNode* node)
     new_node->name = node->name;
     new_node->argc = argc;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 

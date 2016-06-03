@@ -82,6 +82,8 @@ void Compiler::M_transformAST()
     NodeVisitor::apply<ExprResultCheck>(m_root, m_parser);
     NodeVisitor::apply<ExtractMain>(m_root, m_parser);
     NodeVisitor::apply<AddImplicitReturn>(m_root, m_parser);
+    NodeVisitor::apply<ExpandCompoundAssignments>(m_root, m_parser);
+
     NodeVisitor::apply<BindNames>(m_root, m_parser);
     NodeVisitor::apply<ResolveNames>(m_root, m_parser);
     NodeVisitor::apply<ResolveConsts>(m_root, m_parser);

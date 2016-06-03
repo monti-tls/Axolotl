@@ -55,7 +55,7 @@ namespace lang
         public:
             //! Build a node, remembering its position in the input
             //!   stream by saving its start token
-            Node(Token const& start_token);
+            Node(Token const& start_token = Token());
             virtual ~Node();
 
             //! Accept a visitor
@@ -85,6 +85,10 @@ namespace lang
             std::size_t chainLength() const;
             //! Get the root of the current tree
             Node* root() const;
+            //! Clone the entire subtree and chain including this node
+            //! Note that symbol tables won't neither be cloned nor passed around
+            //!   to the closed tree, so this has limited functionnality
+            Node* clone() const;
 
             //! Change the parent of this node and of all
             //!   subsequent nodes in the chain
@@ -114,6 +118,9 @@ namespace lang
             //! Remove this node from the tree
             void remove();
 
+        protected:
+            virtual Node* M_clone() const = 0;
+
         private:
             Node*& M_last();
 
@@ -137,6 +144,8 @@ namespace lang
                 virtual void accept(AbstractNodeVisitor* v); \
                 virtual Flags flags() const; \
                 __VA_ARGS__ \
+            protected: \
+                virtual Node* M_clone() const; \
             };
         #define DEF_FLAG(name, value)
         #include "lang/ast/nodes.def"

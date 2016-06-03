@@ -7,11 +7,13 @@ using namespace ast;
 
 AbstractNodeVisitor::AbstractNodeVisitor(ParserBase* parser, bool nofollow)
     : m_parser(parser)
+    , m_parent(nullptr)
     , m_nofollow(nofollow)
 {}
 
 AbstractNodeVisitor::AbstractNodeVisitor(AbstractNodeVisitor* parent, bool nofollow)
     : m_parser(parent->m_parser)
+    , m_parent(parent)
     , m_nofollow(nofollow)
 {}
 
@@ -20,6 +22,12 @@ AbstractNodeVisitor::~AbstractNodeVisitor()
 
 void AbstractNodeVisitor::init()
 {}
+
+ParserBase* AbstractNodeVisitor::parser() const
+{ return m_parser; }
+
+AbstractNodeVisitor* AbstractNodeVisitor::parent() const
+{ return m_parent; }
 
 void AbstractNodeVisitor::M_message(Node* node, std::string const& msg)
 { m_parser->message(node->startToken(), msg); }

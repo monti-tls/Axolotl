@@ -25,28 +25,54 @@ namespace lang
 {
     namespace ast
     {
-        class NodeGenerator : public NodeVisitor
+        class NodeGenerator;
+
+        class AbstractNodeGenerator : public NodeVisitor
         {
         public:
-            NodeGenerator(ParserBase* parser, bool nofollow = false);
-            NodeGenerator(NodeGenerator* gen, bool nofollow = false);
+            AbstractNodeGenerator(ParserBase* parser, bool nofollow = false);
+            AbstractNodeGenerator(AbstractNodeGenerator* gen, bool nofollow = false);
+            virtual ~AbstractNodeGenerator();
+
+            #define CAT(a, b) a ## b
+            #define DEF_NODE(name, ...) \
+                virtual void hook(NodeGenerator* gen, CAT(name, Node)* node) = 0;
+            #define DEF_FLAG(name, value)
+            #include "lang/ast/nodes.def"
+            #undef DEF_FLAG
+            #undef DEF_NODE
+            #undef CAT
+
+        protected:
+            Node* m_generated;
+            int m_label_alloc;
+            int* m_label_alloc_ptr;
+        };
+
+        class NodeGenerator : public AbstractNodeGenerator
+        {
+        public:
+            using AbstractNodeGenerator::AbstractNodeGenerator;
             virtual ~NodeGenerator();
 
             virtual void init();
             Node* generated() const;
 
-        protected:
-            std::string M_newLabel();
-            void M_emit(Node* node);
-            void M_emitLabel(Node* parent, std::string const& name);
-            void M_emitGoto(Node* parent, std::string const& name);
-            void M_emitGotoIfTrue(Node* parent, std::string const& name);
-            void M_emitGotoIfFalse(Node* parent, std::string const& name);
-
-        private:
-            Node* m_generated;
-            int m_label_alloc;
-            int* m_label_alloc_ptr;
+            #define CAT(a, b) a ## b
+            #define DEF_NODE(name, ...) \
+                virtual void hook(NodeGenerator* gen, CAT(name, Node)* node);
+            #define DEF_FLAG(name, value)
+            #include "lang/ast/nodes.def"
+            #undef DEF_FLAG
+            #undef DEF_NODE
+            #undef CAT
+                
+            std::string newLabel();
+            void emit(Node* node);
+            void emitLabel(Node* parent, std::string const& name);
+            void emitGoto(Node* parent, std::string const& name);
+            void emitGotoIfTrue(Node* parent, std::string const& name);
+            void emitGotoIfFalse(Node* parent, std::string const& name);
 
         public:
             template <typename Generator, typename... Args>

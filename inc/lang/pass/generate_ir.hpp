@@ -39,6 +39,8 @@ namespace lang
             void visit(ast::ElifNode* node);
             void visit(ast::ElseNode* node);
             void visit(ast::WhileNode* node);
+            void visit(ast::BreakNode* node);
+            void visit(ast::ContinueNode* node);
             void visit(ast::ImportNode* node);
             void visit(ast::ImportMaskNode* node);
             void visitDefault(ast::Node* node);

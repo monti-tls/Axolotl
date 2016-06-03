@@ -375,13 +375,22 @@ Node* Parser::M_expr_9()
     switch (M_peek().which())
     {
         case TOK_ASSIGN:
+        case TOK_ASSIGN_ADD:
+        case TOK_ASSIGN_SUB:
+        case TOK_ASSIGN_MUL:
+        case TOK_ASSIGN_DIV:
+        case TOK_ASSIGN_MOD:
         {
-            Token start_token = M_eat(TOK_ASSIGN);
+            Token start_token = M_get();
             Node* other_node = M_expr();
 
             AssignNode* new_node = new AssignNode(start_token);
             new_node->addSibling(node);
             new_node->addSibling(other_node);
+            new_node->operation = "";
+
+            if (start_token.which() != TOK_ASSIGN)
+                new_node->operation = M_operatorMethodName(start_token.which());
 
             return new_node;
         }
@@ -474,6 +483,26 @@ Node* Parser::M_return_stmt()
 
     ReturnNode* node = new ReturnNode(start_token);
     node->addSibling(expr_node);
+
+    return node;
+}
+
+Node* Parser::M_break_stmt()
+{
+    Token start_token = M_eat(TOK_KW_BREAK);
+    M_eat(TOK_SEMICOLON);
+
+    BreakNode* node = new BreakNode(start_token);
+
+    return node;
+}
+
+Node* Parser::M_continue_stmt()
+{
+    Token start_token = M_eat(TOK_KW_CONTINUE);
+    M_eat(TOK_SEMICOLON);
+
+    ContinueNode* node = new ContinueNode(start_token);
 
     return node;
 }
@@ -761,6 +790,14 @@ Node* Parser::M_stmt()
             node = M_check(M_return_stmt());
             break;
 
+        case TOK_KW_BREAK:
+            node = M_check(M_break_stmt());
+            break;
+
+        case TOK_KW_CONTINUE:
+            node = M_check(M_continue_stmt());
+            break;
+
         case TOK_LCURL:
             node = M_check(M_block_stmt());
             break;
@@ -820,40 +857,47 @@ void Parser::M_setupLexer()
              "'[ \t\n]'+ | (\"//\" '[^\n]'*) | (\"/*\" ('[^*]' | ('*'+ '[^*/]'))* \"*/\")",
              Token(Token::Skip));
 
-    M_define("LPAR",         "'('",     Token(TOK_LPAR));
-    M_define("RPAR",         "')'",     Token(TOK_RPAR));
-    M_define("LCURL",        "'{'",     Token(TOK_LCURL));
-    M_define("RCURL",        "'}'",     Token(TOK_RCURL));
-    M_define("DOT",          "'.'",     Token(TOK_DOT));
-    M_define("COMMA",        "','",     Token(TOK_COMMA));
-    M_define("SEMICOLON",    "';'",     Token(TOK_SEMICOLON));
-    M_define("COLON",        "':'",     Token(TOK_COLON));
+    M_define("LPAR",         "'('",         Token(TOK_LPAR));
+    M_define("RPAR",         "')'",         Token(TOK_RPAR));
+    M_define("LCURL",        "'{'",         Token(TOK_LCURL));
+    M_define("RCURL",        "'}'",         Token(TOK_RCURL));
+    M_define("DOT",          "'.'",         Token(TOK_DOT));
+    M_define("COMMA",        "','",         Token(TOK_COMMA));
+    M_define("SEMICOLON",    "';'",         Token(TOK_SEMICOLON));
+    M_define("COLON",        "':'",         Token(TOK_COLON));
 
-    M_define("ARITH_ADD",    "'+'",     Token(TOK_ARITH_ADD));
-    M_define("ARITH_SUB",    "'-'",     Token(TOK_ARITH_SUB));
-    M_define("ARITH_MUL",    "'*'",     Token(TOK_ARITH_MUL));
-    M_define("ARITH_DIV",    "'/'",     Token(TOK_ARITH_DIV));
-    M_define("ARITH_MOD",    "'%'",     Token(TOK_ARITH_MOD));
-    M_define("LOGIC_NOT",    "'!'",     Token(TOK_LOGIC_NOT));
-    M_define("LOGIC_AND",    "\"&&\"",  Token(TOK_LOGIC_AND));
-    M_define("LOGIC_OR",     "\"||\"",  Token(TOK_LOGIC_OR));
-    M_define("REL_LT",       "'<'",     Token(TOK_REL_LT));
-    M_define("REL_LTE",      "\"<=\"",  Token(TOK_REL_LTE));
-    M_define("REL_GT",       "'>'",     Token(TOK_REL_GT));
-    M_define("REL_GTE",      "\">=\"",  Token(TOK_REL_GTE));
-    M_define("REL_EQ",       "\"==\"",  Token(TOK_REL_EQ));
-    M_define("REL_NEQ",      "\"!=\"",  Token(TOK_REL_NEQ));
-    M_define("ASSIGN",       "'='",     Token(TOK_ASSIGN));
+    M_define("ARITH_ADD",    "'+'",         Token(TOK_ARITH_ADD));
+    M_define("ARITH_SUB",    "'-'",         Token(TOK_ARITH_SUB));
+    M_define("ARITH_MUL",    "'*'",         Token(TOK_ARITH_MUL));
+    M_define("ARITH_DIV",    "'/'",         Token(TOK_ARITH_DIV));
+    M_define("ARITH_MOD",    "'%'",         Token(TOK_ARITH_MOD));
+    M_define("LOGIC_NOT",    "'!'",         Token(TOK_LOGIC_NOT));
+    M_define("LOGIC_AND",    "\"&&\"",      Token(TOK_LOGIC_AND));
+    M_define("LOGIC_OR",     "\"||\"",      Token(TOK_LOGIC_OR));
+    M_define("REL_LT",       "'<'",         Token(TOK_REL_LT));
+    M_define("REL_LTE",      "\"<=\"",      Token(TOK_REL_LTE));
+    M_define("REL_GT",       "'>'",         Token(TOK_REL_GT));
+    M_define("REL_GTE",      "\">=\"",      Token(TOK_REL_GTE));
+    M_define("REL_EQ",       "\"==\"",      Token(TOK_REL_EQ));
+    M_define("REL_NEQ",      "\"!=\"",      Token(TOK_REL_NEQ));
+    M_define("ASSIGN",       "'='",         Token(TOK_ASSIGN));
+    M_define("ASSIGN_ADD",   "\"+=\"",        Token(TOK_ASSIGN_ADD));
+    M_define("ASSIGN_SUB",   "\"-=\"",        Token(TOK_ASSIGN_SUB));
+    M_define("ASSIGN_MUL",   "\"*=\"",        Token(TOK_ASSIGN_MUL));
+    M_define("ASSIGN_DIV",   "\"/=\"",        Token(TOK_ASSIGN_DIV));
+    M_define("ASSIGN_MOD",   "\"%=\"",        Token(TOK_ASSIGN_MOD));
 
-    M_define("KW_IMPORT", "\"import\"", Token(TOK_KW_IMPORT));
-    M_define("KW_IF",     "\"if\"",     Token(TOK_KW_IF));
-    M_define("KW_ELIF",   "\"elif\"",   Token(TOK_KW_ELIF));
-    M_define("KW_ELSE",   "\"else\"",   Token(TOK_KW_ELSE));
-    M_define("KW_WHILE",  "\"while\"",  Token(TOK_KW_WHILE));
-    M_define("KW_FUN",    "\"fun\"",    Token(TOK_KW_FUN));
-    M_define("KW_RETURN", "\"return\"", Token(TOK_KW_RETURN));
-    M_define("KW_CLASS",  "\"class\"",  Token(TOK_KW_CLASS));
-    M_define("KW_AS",     "\"as\"",     Token(TOK_KW_AS));
+    M_define("KW_IMPORT",   "\"import\"",   Token(TOK_KW_IMPORT));
+    M_define("KW_IF",       "\"if\"",       Token(TOK_KW_IF));
+    M_define("KW_ELIF",     "\"elif\"",     Token(TOK_KW_ELIF));
+    M_define("KW_ELSE",     "\"else\"",     Token(TOK_KW_ELSE));
+    M_define("KW_WHILE",    "\"while\"",    Token(TOK_KW_WHILE));
+    M_define("KW_FUN",      "\"fun\"",      Token(TOK_KW_FUN));
+    M_define("KW_RETURN",   "\"return\"",   Token(TOK_KW_RETURN));
+    M_define("KW_CLASS",    "\"class\"",    Token(TOK_KW_CLASS));
+    M_define("KW_AS",       "\"as\"",       Token(TOK_KW_AS));
+    M_define("KW_BREAK",    "\"break\"",    Token(TOK_KW_BREAK));
+    M_define("KW_CONTINUE", "\"continue\"", Token(TOK_KW_CONTINUE));
 
     M_define("IDENTIFIER", "'[_a-zA-Z]' '[_a-zA-Z0-9]'*",
             [&](std::string const& lexeme)
@@ -1010,7 +1054,12 @@ std::string Parser::M_operatorMethodName(Token const& token)
         { TOK_REL_GT, std_gt },
         { TOK_REL_GTE, std_gte },
         { TOK_REL_EQ, std_equals },
-        { TOK_REL_NEQ, std_nequals }
+        { TOK_REL_NEQ, std_nequals },
+        { TOK_ASSIGN_ADD, std_add},
+        { TOK_ASSIGN_SUB, std_sub},
+        { TOK_ASSIGN_MUL, std_mul},
+        { TOK_ASSIGN_DIV, std_div},
+        { TOK_ASSIGN_MOD, std_mod}
     };
     
     auto it = names.find(token.which());

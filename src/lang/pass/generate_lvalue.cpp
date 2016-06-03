@@ -17,7 +17,7 @@ void GenerateLValue::visit(GlobalRefNode* node)
     IR_StorGlobalNode* new_node = new IR_StorGlobalNode(node->startToken());
     new_node->name = node->name;
 
-    M_emit(new_node);
+    emit(new_node);
 }
 
 void GenerateLValue::visit(LocalRefNode* node)
@@ -25,17 +25,17 @@ void GenerateLValue::visit(LocalRefNode* node)
     IR_StorLocalNode* new_node = new IR_StorLocalNode(node->startToken());
     new_node->index = node->index;
 
-    M_emit(new_node);
+    emit(new_node);
 }
 
 void GenerateLValue::visit(MemberNode* node)
 {
-    M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
+    emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
 
     IR_StorMemberNode* new_node = new IR_StorMemberNode(node->startToken());
     new_node->name = node->name;
 
-    M_emit(new_node);
+    emit(new_node);
 }
 
 void GenerateLValue::visitDefault(Node* node)

@@ -82,6 +82,25 @@ Node* Node::root() const
     return const_cast<Node*>(this);
 }
 
+Node* Node::clone() const
+{
+    Node* new_node = M_clone();
+
+    new_node->m_start_token = m_start_token;
+    new_node->m_next = m_next;
+    new_node->m_prev = m_prev;
+    new_node->m_parent = m_parent;
+    new_node->m_symtab = nullptr;
+
+    if (m_next)
+        new_node->m_next = m_next->clone();
+
+    for (auto sib : m_siblings)
+        new_node->addSibling(sib->clone());
+
+    return new_node;
+}
+
 void Node::setParent(Node* parent)
 {
     m_parent = parent;
@@ -245,8 +264,27 @@ Node*& Node::M_last()
 #define DEF_NODE(name, ...) \
     void CAT(name, Node)::accept(AbstractNodeVisitor* v) \
     { v->visit(this); } \
+    \
     Node::Flags CAT(name, Node)::flags() const \
     { return (Flags) __VA_ARGS__; }
+#define DEF_FLAG(name, value)
+#include "lang/ast/nodes.def"
+#undef DEF_FLAG
+#undef FLAGS
+#undef ATTR
+#undef DEF_NODE
+#undef CAT
+
+#define CAT(a, b) a ## b
+#define ATTR(type, name) copy->name = name;
+#define FLAGS(mask)
+#define DEF_NODE(name, ...) \
+    Node* CAT(name, Node)::M_clone() const \
+    { \
+        CAT(name, Node)* copy = new CAT(name, Node)(); \
+        __VA_ARGS__ \
+        return copy; \
+    }
 #define DEF_FLAG(name, value)
 #include "lang/ast/nodes.def"
 #undef DEF_FLAG

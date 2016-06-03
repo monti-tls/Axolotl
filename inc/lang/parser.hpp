@@ -64,6 +64,8 @@ namespace lang
         ast::Node* M_if_stmt();
         ast::Node* M_while_stmt();
         ast::Node* M_return_stmt();
+        ast::Node* M_break_stmt();
+        ast::Node* M_continue_stmt();
         ast::Node* M_block_stmt();
 
         void M_param_list_decl();

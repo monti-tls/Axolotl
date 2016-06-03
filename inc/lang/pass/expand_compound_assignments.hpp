@@ -14,35 +14,29 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_PASS_GENERATE_WHILE_H__
-#define __AXOLOTL_LANG_PASS_GENERATE_WHILE_H__
+#ifndef __AXOLOTL_LANG_PASS_EXPAND_COMPOUND_ASSIGNMENTS_H__
+#define __AXOLOTL_LANG_PASS_EXPAND_COMPOUND_ASSIGNMENTS_H__
 
 #include "lang/forward.hpp"
-#include "lang/ast/node_generator.hpp"
-
-#include <string>
+#include "lang/ast/node_visitor.hpp"
 
 namespace lang
 {
     namespace pass
     {
-        class GenerateWhile : public ast::NodeGenerator
+        //! Stage   : AST -> AST
+        //! Modifies: some Assign nodes
+        //! This pass replaces compound assignments (i.e. +=, -=, %= or whatever)
+        //!   into a simple assignment and the appropriate method call
+        class ExpandCompoundAssignments : public ast::NodeVisitor
         {
         public:
-            using NodeGenerator::NodeGenerator;
-            ~GenerateWhile();
+            using NodeVisitor::NodeVisitor;
+            ~ExpandCompoundAssignments();
 
-            void visit(ast::WhileNode* node);
-            void visitDefault(ast::Node* node);
-
-            void hook(ast::NodeGenerator* gen, ast::BreakNode* node);
-            void hook(ast::NodeGenerator* gen, ast::ContinueNode* node);
-
-        private:
-            std::string m_cond_label;
-            std::string m_end_label;
+            void visit(ast::AssignNode* node);
         };
     }
 }
 
-#endif // __AXOLOTL_LANG_PASS_GENERATE_WHILE_H__
+#endif // __AXOLOTL_LANG_PASS_EXPAND_COMPOUND_ASSIGNMENTS_H__

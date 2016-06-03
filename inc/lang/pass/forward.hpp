@@ -24,6 +24,7 @@ namespace lang
         class PrettyPrint;
         class ExtractMain;
         class AddImplicitReturn;
+        class ExpandCompoundAssignments;
         class ExprResultCheck;
         class BindNames;
         class ResolveNames;

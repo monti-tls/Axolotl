@@ -103,9 +103,9 @@ fun _partition(l : core.list, low : core.int, high : core.int)
         if (l.get(j) <= pivot)
         {
             l.swap(i, j);
-            i = i+1;
+            i += 1;
         }
-        j = j+1;
+        j += 1;
     }
 
     l.swap(i, high);
@@ -158,11 +158,11 @@ class BigInt
                 num = num + (s.get(i) - '0') * prefix;
                 prefix = prefix * 10;
                 length = length + 1;
-                i = i - 1;
+                i -= 1;
             }
 
             self.digits.append(num);
-            size = size - length;
+            size -= length;
         }
     }
 
@@ -176,7 +176,7 @@ class BigInt
         while (i >= 0)
         {
             out.extend(self.digits.get(i).__serialize__());
-            i = i - 1;
+            i -= 1;
         }
 
         return out;
@@ -199,7 +199,7 @@ i = 0;
 while (i < l.size())
 {
     l.set(i, l.get(i).sqrt());
-    i = i + 1;
+    i += 1;
 }
 
 io.println("After sqrt : ", l);
@@ -208,7 +208,7 @@ i = 0;
 while (i < l.size())
 {
     l.set(i, l.get(i)*l.get(i));
-    i = i + 1;
+    i += 1;
 }
 
 io.println("After square again : ", l);

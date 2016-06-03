@@ -36,6 +36,9 @@ namespace lang
 
             virtual void init();
 
+            ParserBase* parser() const;
+            AbstractNodeVisitor* parent() const;
+
             #define CAT(a, b) a ## b
             #define DEF_NODE(name, ...) \
                 virtual void visit(CAT(name, Node)* node) = 0;
@@ -53,6 +56,7 @@ namespace lang
 
         private:
             ParserBase* m_parser;
+            AbstractNodeVisitor* m_parent;
             bool m_nofollow;
         };
 

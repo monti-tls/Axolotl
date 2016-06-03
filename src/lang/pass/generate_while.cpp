@@ -4,6 +4,8 @@
 
 #include "lang/ast/ast.hpp"
 
+#include <iostream>
+
 using namespace lang;
 using namespace ast;
 using namespace pass;
@@ -13,18 +15,28 @@ GenerateWhile::~GenerateWhile()
 
 void GenerateWhile::visit(WhileNode* node)
 {
-    std::string cond_label = M_newLabel();
-    std::string end_label = M_newLabel();
+    m_cond_label = newLabel();
+    m_end_label = newLabel();
 
-    M_emitLabel(node, cond_label);
-    M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
-    M_emitGotoIfFalse(node, end_label);
+    emitLabel(node, m_cond_label);
+    emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
+    emitGotoIfFalse(node, m_end_label);
 
-    M_emit(NodeGenerator::generate<GenerateIR>(node->siblings()[1], this));
-    M_emitGoto(node, cond_label);
+    emit(NodeGenerator::generate<GenerateIR>(node->siblings()[1], this));
+    emitGoto(node, m_cond_label);
 
-    M_emitLabel(node, end_label);
+    emitLabel(node, m_end_label);
 }
 
 void GenerateWhile::visitDefault(Node*)
 { /* don't handle other blocks */ }
+
+void GenerateWhile::hook(NodeGenerator* gen, BreakNode* node)
+{
+    gen->emitGoto(node, m_end_label);
+}
+
+void GenerateWhile::hook(NodeGenerator* gen, ContinueNode* node)
+{
+    gen->emitGoto(node, m_cond_label);
+}

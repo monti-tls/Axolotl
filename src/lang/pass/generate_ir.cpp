@@ -20,7 +20,7 @@ void GenerateIR::visit(ProgNode* node)
     new_node->addSibling(NodeGenerator::generate<GenerateIR>(body, this));
     new_node->attachSymtab(node->detachSymtab());
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -33,7 +33,7 @@ void GenerateIR::visit(FunDeclNode* node)
     new_node->addSibling(NodeGenerator::generate<GenerateIR>(body, this));
     new_node->attachSymtab(node->detachSymtab());
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -46,7 +46,7 @@ void GenerateIR::visit(ClassDeclNode* node)
     new_node->addSibling(NodeGenerator::generate<GenerateIR>(body, this));
     new_node->attachSymtab(node->detachSymtab());
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -54,15 +54,15 @@ void GenerateIR::visit(ReturnNode* node)
 {
     if (node->siblings().size())
     {
-        M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
+        emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[0], this));
 
         IR_ReturnNode* new_node = new IR_ReturnNode(node->startToken());
-        M_emit(new_node);
+        emit(new_node);
     }
     else
     {
         IR_LeaveNode* new_node = new IR_LeaveNode(node->startToken());
-        M_emit(new_node);
+        emit(new_node);
     }
 
     M_follow(node);
@@ -70,15 +70,15 @@ void GenerateIR::visit(ReturnNode* node)
 
 void GenerateIR::visit(AssignNode* node)
 {
-    M_emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
-    M_emit(NodeGenerator::generate<GenerateLValue>(node->siblings()[0], this));
+    emit(NodeGenerator::generate<GenerateRValue>(node->siblings()[1], this));
+    emit(NodeGenerator::generate<GenerateLValue>(node->siblings()[0], this));
 
     M_follow(node);
 }
 
 void GenerateIR::visit(IfNode* node)
 {
-    M_emit(NodeGenerator::generate<GenerateIfElifElse>(node, this));
+    emit(NodeGenerator::generate<GenerateIfElifElse>(node, this));
     M_follow(node);
 }
 
@@ -90,7 +90,19 @@ void GenerateIR::visit(ElseNode* node)
 
 void GenerateIR::visit(WhileNode* node)
 {
-    M_emit(NodeGenerator::generate<GenerateWhile>(node, this));
+    emit(NodeGenerator::generate<GenerateWhile>(node, this));
+    M_follow(node);
+}
+
+void GenerateIR::visit(BreakNode* node)
+{
+    hook(this, node);
+    M_follow(node);
+}
+
+void GenerateIR::visit(ContinueNode* node)
+{
+    hook(this, node);
     M_follow(node);
 }
 
@@ -99,7 +111,7 @@ void GenerateIR::visit(ImportNode* node)
     IR_ImportNode* new_node = new IR_ImportNode(node->startToken());
     new_node->name = node->name;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
@@ -109,21 +121,21 @@ void GenerateIR::visit(ImportMaskNode* node)
     new_node->name = node->name;
     new_node->mask = node->mask;
 
-    M_emit(new_node);
+    emit(new_node);
     M_follow(node);
 }
 
 void GenerateIR::visitDefault(Node* node)
 {
     Node* gen = NodeGenerator::generate<GenerateRValue>(node, this, true);
-    M_emit(gen);
+    emit(gen);
 
     Node::Flags flags = gen->last()->flags();
 
     if ((flags & Node::IR_Call) || (flags & Node::IR_Load))
     {
         IR_PopNode* new_node = new IR_PopNode(node->startToken());
-        M_emit(new_node);
+        emit(new_node);
     }
 
     M_follow(node);

@@ -92,7 +92,10 @@ void PrettyPrint::visit(MethodNode* node)
 void PrettyPrint::visit(AssignNode* node)
 {
     M_indent();
-    m_os << "(Assign" << std::endl;
+    m_os << "(Assign";
+    if (node->operation != "")
+        m_os << " (" << node->operation << ")";
+    m_os << std::endl;
     ++m_indent;
     node->siblings()[0]->accept(this);
     m_os << "," << std::endl;
@@ -169,6 +172,22 @@ void PrettyPrint::visit(ReturnNode* node)
         --m_indent;
     }
     m_os << ")";
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(BreakNode* node)
+{
+    M_indent();
+    m_os << "(Break)";
+
+    M_follow(node);
+}
+
+void PrettyPrint::visit(ContinueNode* node)
+{
+    M_indent();
+    m_os << "(Continue)";
 
     M_follow(node);
 }
