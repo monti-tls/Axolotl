@@ -463,12 +463,34 @@ Node* Parser::M_while_stmt()
 {
     Token start_token = M_eat(TOK_KW_WHILE);
     M_eat(TOK_LPAR);
-    Node* expr_node = M_check(M_expr());
+    Node* cond_node = M_check(M_expr());
     M_eat(TOK_RPAR);
     Node* stmt_node = M_check(M_stmt());
 
     WhileNode* node = new WhileNode(start_token);
-    node->addSibling(expr_node);
+    node->addSibling(cond_node);
+    node->addSibling(stmt_node);
+
+    return node;
+}
+
+Node* Parser::M_for_stmt()
+{
+    Token start_token = M_eat(TOK_KW_FOR);
+    M_eat(TOK_LPAR);
+    Node* init_node = M_check(M_expr());
+    M_eat(TOK_SEMICOLON);
+    Node* cond_node = M_check(M_expr());
+    M_eat(TOK_SEMICOLON);
+    Node* it_node = M_check(M_expr());
+    M_eat(TOK_RPAR);
+
+    Node* stmt_node = M_check(M_stmt());
+
+    ForNode* node = new ForNode(start_token);
+    node->addSibling(init_node);
+    node->addSibling(cond_node);
+    node->addSibling(it_node);
     node->addSibling(stmt_node);
 
     return node;
@@ -789,6 +811,10 @@ Node* Parser::M_stmt()
             node = M_check(M_while_stmt());
             break;
 
+        case TOK_KW_FOR:
+            node = M_check(M_for_stmt());
+            break;
+
         case TOK_KW_RETURN:
             node = M_check(M_return_stmt());
             break;
@@ -895,6 +921,7 @@ void Parser::M_setupLexer()
     M_define("KW_ELIF",     "\"elif\"",     Token(TOK_KW_ELIF));
     M_define("KW_ELSE",     "\"else\"",     Token(TOK_KW_ELSE));
     M_define("KW_WHILE",    "\"while\"",    Token(TOK_KW_WHILE));
+    M_define("KW_FOR",      "\"for\"",      Token(TOK_KW_FOR));
     M_define("KW_FUN",      "\"fun\"",      Token(TOK_KW_FUN));
     M_define("KW_RETURN",   "\"return\"",   Token(TOK_KW_RETURN));
     M_define("KW_CLASS",    "\"class\"",    Token(TOK_KW_CLASS));

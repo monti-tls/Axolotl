@@ -14,39 +14,36 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_PASS_GENERATE_IR_H__
-#define __AXOLOTL_LANG_PASS_GENERATE_IR_H__
+#ifndef __AXOLOTL_LANG_PASS_GENERATE_FOR_H__
+#define __AXOLOTL_LANG_PASS_GENERATE_FOR_H__
 
 #include "lang/forward.hpp"
 #include "lang/ast/node_generator.hpp"
+
+#include <string>
 
 namespace lang
 {
     namespace pass
     {
-        class GenerateIR : public ast::NodeGenerator
+        class GenerateFor : public ast::NodeGenerator
         {
         public:
             using NodeGenerator::NodeGenerator;
-            ~GenerateIR();
+            ~GenerateFor();
 
-            void visit(ast::ProgNode* node);
-            void visit(ast::FunDeclNode* node);
-            void visit(ast::ClassDeclNode* node);
-            void visit(ast::ReturnNode* node);
-            void visit(ast::AssignNode* node);
-            void visit(ast::IfNode* node);
-            void visit(ast::ElifNode* node);
-            void visit(ast::ElseNode* node);
-            void visit(ast::WhileNode* node);
             void visit(ast::ForNode* node);
-            void visit(ast::BreakNode* node);
-            void visit(ast::ContinueNode* node);
-            void visit(ast::ImportNode* node);
-            void visit(ast::ImportMaskNode* node);
             void visitDefault(ast::Node* node);
+
+            void hook(ast::NodeGenerator* gen, ast::BreakNode* node);
+            void hook(ast::NodeGenerator* gen, ast::ContinueNode* node);
+
+        private:
+            std::string m_cond_label;
+            std::string m_it_label;
+            std::string m_end_label;
         };
     }
 }
 
-#endif // __AXOLOTL_LANG_PASS_GENERATE_IR_H__
+#endif // __AXOLOTL_LANG_PASS_GENERATE_FOR_H__

@@ -3,6 +3,7 @@
 #include "lang/pass/generate_lvalue.hpp"
 #include "lang/pass/generate_if_elif_else.hpp"
 #include "lang/pass/generate_while.hpp"
+#include "lang/pass/generate_for.hpp"
 
 #include "lang/ast/ast.hpp"
 
@@ -94,14 +95,24 @@ void GenerateIR::visit(WhileNode* node)
     M_follow(node);
 }
 
+void GenerateIR::visit(ForNode* node)
+{
+    emit(NodeGenerator::generate<GenerateFor>(node, this));
+    M_follow(node);
+}
+
 void GenerateIR::visit(BreakNode* node)
 {
+    // Let one of our parents handle the node
+    //   (this should be GenerateWhile or GenerateFor)
     hook(this, node);
     M_follow(node);
 }
 
 void GenerateIR::visit(ContinueNode* node)
 {
+    // Let one of our parents handle the node
+    //   (this should be GenerateWhile or GenerateFor)
     hook(this, node);
     M_follow(node);
 }

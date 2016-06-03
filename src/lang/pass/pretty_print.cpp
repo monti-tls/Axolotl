@@ -160,6 +160,24 @@ void PrettyPrint::visit(WhileNode* node)
     M_follow(node);
 }
 
+void PrettyPrint::visit(ForNode* node)
+{
+    M_indent();
+    m_os << "(While" << std::endl;
+    ++m_indent;
+    node->siblings()[0]->accept(this);
+    m_os << "," << std::endl;
+    node->siblings()[1]->accept(this);
+    m_os << "," << std::endl;
+    node->siblings()[2]->accept(this);
+    m_os << "," << std::endl;
+    node->siblings()[3]->accept(this);
+    m_os << ")";
+    --m_indent;
+
+    M_follow(node);
+}
+
 void PrettyPrint::visit(ReturnNode* node)
 {
     M_indent();

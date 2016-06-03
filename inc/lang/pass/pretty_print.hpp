@@ -43,6 +43,7 @@ namespace lang
             void visit(ast::ElifNode* node);
             void visit(ast::ElseNode* node);
             void visit(ast::WhileNode* node);
+            void visit(ast::ForNode* node);
             void visit(ast::ReturnNode* node);
             void visit(ast::BreakNode* node);
             void visit(ast::ContinueNode* node);

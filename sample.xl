@@ -141,3 +141,5 @@ while (i < l.size())
     i += 1;
 }
 
+for (i = 40; i >= 4; i %= 4)
+    io.println(i);

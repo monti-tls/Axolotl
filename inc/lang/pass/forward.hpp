@@ -33,6 +33,7 @@ namespace lang
         class GenerateLValue;
         class GenerateIfElifElse;
         class GenerateWhile;
+        class GenerateFor;
         class GenerateIR;
         class RenameLabel;
         class CleanLabels;

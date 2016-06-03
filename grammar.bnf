@@ -60,6 +60,7 @@ KW_CLASS    := "class";
 KW_AS       := "as";
 KW_BREAK    := "break";
 KW_CONTINUE := "continue";
+KW_FOR      := "for";
 
 // Identifier tokens (context-dependent)
 IDENTIFIER,
@@ -227,12 +228,15 @@ if_stmt := KW_IF LPAR expr RPAR stmt
 
 while_stmt := KW_WHILE LPAR expr RPAR stmt;
 
+for_stmt := KW_FOR LPAR expr SEMICOLON expr SEMICOLON expr RPAR stmt;
+
 return_stmt := KW_RETURN expr? SEMICOLON;
 break_stmt  := KW_BREAK SEMICOLON;
 continue_stmt := BW_CONTINUE SEMICOLON;
 
 ctrl_stmt := if_stmt
            | while_stmt
+           | for_stmt
            | return_stmt
            | break_stmt
            | continue_stmt

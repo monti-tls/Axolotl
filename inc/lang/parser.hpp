@@ -63,6 +63,7 @@ namespace lang
 
         ast::Node* M_if_stmt();
         ast::Node* M_while_stmt();
+        ast::Node* M_for_stmt();
         ast::Node* M_return_stmt();
         ast::Node* M_break_stmt();
         ast::Node* M_continue_stmt();

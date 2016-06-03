@@ -27,6 +27,7 @@
 #include "lang/pass/generate_lvalue.hpp"
 #include "lang/pass/generate_if_elif_else.hpp"
 #include "lang/pass/generate_while.hpp"
+#include "lang/pass/generate_for.hpp"
 #include "lang/pass/generate_ir.hpp"
 #include "lang/pass/rename_label.hpp"
 #include "lang/pass/clean_labels.hpp"

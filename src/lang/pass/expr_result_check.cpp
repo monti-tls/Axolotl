@@ -27,7 +27,7 @@ void ExprResultCheck::visitDefault(Node* node)
     if (flags & Node::Block)
     {
         if (flags & Node::HasCond)
-            node->siblings()[1]->accept(this);
+            node->siblings()[node->siblings().size()-1]->accept(this);
         else
             node->siblings()[0]->accept(this);
     }
