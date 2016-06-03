@@ -20,9 +20,9 @@
 #include "core/signature.hpp"
 #include "core/callback.hpp"
 #include "core/object.hpp"
-// #include "core/object_factory.hpp"
 #include "core/type_registry.hpp"
 #include "core/class.hpp"
+#include "core/exception.hpp"
 
 #include "core/callback_impl.hpp"
 #include "core/object_impl.hpp"

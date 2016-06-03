@@ -24,6 +24,12 @@ namespace core
     class Signature;
     class Object;
     class Class;
+    class Exception;
+    class InternalError;
+    class NoMemberError;
+    class ClassError;
+    class SignatureError;
+    class NoFileError;
 }
 
 #endif // __AXOLOTL_CORE_FORWARD_H__

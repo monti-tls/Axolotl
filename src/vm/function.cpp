@@ -16,6 +16,7 @@
 
 #include "vm/function.hpp"
 #include "vm/engine.hpp"
+#include "core/exception.hpp"
 
 #include <string>
 #include <stdexcept>
@@ -37,7 +38,10 @@ Function::~Function()
 Object Function::invoke(std::vector<Object> const& args) const
 {
     if (!m_module.engine())
-        throw std::runtime_error("vm::Function::invoke: module is not attached to an engine");
+    {
+        throw InternalError("vm::Function::invoke: module is not attached to an engine");
+        // throw std::runtime_error("vm::Function::invoke: module is not attached to an engine");
+    }
     return m_module.engine()->execute(*this, args);
 }
 

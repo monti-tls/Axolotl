@@ -2,6 +2,7 @@
 #include "core/object_impl.hpp"
 #include "core/callable.hpp"
 #include "core/callback_impl.hpp"
+#include "core/exception.hpp"
 #include "lang/std_names.hpp"
 
 using namespace core;
@@ -90,7 +91,6 @@ bool Object::callable() const
 {
     M_fixPending();
     return m_impl->meta.is<Callable>();
-    // return kind() == Kind::Callable;
 }
 
 bool Object::invokable() const
@@ -145,7 +145,10 @@ Object Object::findPolymorphic(std::string const& id, std::vector<Object> const&
     {
         Object& obj = it->second;
         if (!obj.callable())
-            throw std::runtime_error("core::Object::findPolymorphic: polymorphic member is not callable");
+        {
+            throw ClassError(obj, type_class<Callable>());
+            // throw std::runtime_error("core::Object::findPolymorphic: polymorphic member is not callable");
+        }
         if (obj.unwrap<Callable>().signature().match(args))
             return obj;
 
@@ -160,7 +163,10 @@ Object& Object::member(std::string const& id)
 {
     M_fixPending();
     if (isPolymorphic(id))
-        throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
+    {
+        throw NoMemberError(*this, id);
+        // throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
+    }
 
     if (!has(id))
         m_impl->members.insert(std::pair<std::string, Object>(id, Object::nil()));
@@ -172,8 +178,16 @@ Object const& Object::member(std::string const& id) const
 {
     M_fixPending();
     if (isPolymorphic(id))
-        throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
-    return m_impl->members.find(id)->second;
+    {
+        throw NoMemberError(*this, id);
+        // throw std::runtime_error("core::Object::member: member '" + id + "' is polymorphic");
+    }
+
+    auto it = m_impl->members.find(id);
+    if (it == m_impl->members.end())
+        throw NoMemberError(*this, id);
+
+    return it->second;
 }
 
 Object Object::invokeMember(std::string const& name, std::vector<Object> const& args) const
@@ -181,7 +195,8 @@ Object Object::invokeMember(std::string const& name, std::vector<Object> const& 
     M_fixPending();
     if (!has(name))
     {
-        throw std::runtime_error("member `" + name + "' does not exists in class `" + classname() + "'\n");
+        throw NoMemberError(*this, name);
+        // throw std::runtime_error("member `" + name + "' does not exists in class `" + classname() + "'\n");
     }
 
     return member(name).invoke(args);
@@ -192,7 +207,10 @@ Object Object::invokePolymorphic(std::string const& name, std::vector<Object> co
     M_fixPending();
     Object morph = findPolymorphic(name, args);
     if (morph.isNil())
-        throw std::runtime_error("core::Object::findPolymorphic: no polymorphic member matches the current signature");
+    {
+        throw SignatureError(*this, name, args);
+        // throw std::runtime_error("core::Object::findPolymorphic: no polymorphic member matches the current signature");
+    }
     return morph.invoke(args);
 }
 
@@ -202,7 +220,10 @@ Object Object::invoke(std::vector<Object> const& args) const
     if (callable())
     {
         if (!m_impl->meta.as<Callable>().signature().match(args))
-            throw std::runtime_error("core::Object::invoke: signature mismatch");
+        {
+            throw SignatureError(*this, "", args);
+            // throw std::runtime_error("core::Object::invoke: signature mismatch");
+        }
 	    return m_impl->meta.as<Callable>().invoke(args);
     }
 
@@ -219,7 +240,10 @@ Object Object::method(std::string const& name, std::vector<Object> const& args) 
 
     Object morph = findPolymorphic(name, new_args);
     if (morph.isNil())
-        throw std::runtime_error("core::Object:method: no polymorphic member matches the current signature");
+    {
+        throw SignatureError(*this, name, args);
+        // throw std::runtime_error("core::Object:method: no polymorphic member matches the current signature");
+    }
 
     return morph.invoke(new_args);
 }

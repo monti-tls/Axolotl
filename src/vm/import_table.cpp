@@ -18,6 +18,7 @@
 #include "vm/engine.hpp"
 #include "lang/std_names.hpp"
 #include "lang/lang.hpp"
+#include "core/exception.hpp"
 
 #include <fstream>
 
@@ -51,7 +52,10 @@ void ImportTable::addModule(Module const& module)
 {
     auto it = m_scope.find(module.name());
     if (it != m_scope.end())
-        throw std::runtime_error("vm::ImportTable::addModule: module already in scope");
+    {
+        throw core::InternalError("vm::ImportTable::addModule: module already in scope");
+        // throw std::runtime_error("vm::ImportTable::addModule: module already in scope");
+    }
 
     m_scope[module.name()] = module;
 }
@@ -71,7 +75,10 @@ bool ImportTable::exists(std::string const& name) const
 Module const& ImportTable::module(std::string const& name) const
 {
     if (!exists(name))
-        throw std::runtime_error("vm::ImportTable::module: module does not exists");
+    {
+        throw core::InternalError("vm::ImportTable::module: module does not exists");
+        // throw std::runtime_error("vm::ImportTable::module: module does not exists");
+    }
 
     return m_table.find(name)->second.module;
 }
@@ -122,7 +129,10 @@ ImportTable::Import ImportTable::M_open(std::string const& name, std::string con
     std::string file = name + ".xl";
     std::ifstream ss(file);
     if (!ss)
-        throw std::runtime_error("vm::Module::import: `" + file + "' not found");
+    {
+        throw core::NoFileError(file);
+        // throw std::runtime_error("vm::Module::import: `" + file + "' not found");
+    }
 
     Import import;
     import.alias = alias;
@@ -136,7 +146,10 @@ void ImportTable::addBuiltin(Module const& module)
 {
     auto it = m_builtins.find(module.name());
     if (it != m_builtins.end())
-        throw std::runtime_error("vm::ImportTable::addBuiltin: module is already added");
+    {
+        throw core::InternalError("vm::ImportTable::addBuiltin: module is already added");
+        // throw std::runtime_error("vm::ImportTable::addBuiltin: module is already added");
+    }
 
     m_builtins[module.name()] = module;
 }

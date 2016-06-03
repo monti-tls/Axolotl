@@ -26,7 +26,7 @@ namespace bits
     class Disassembler
     {
     public:
-        Disassembler(Blob const& blob, std::ostream& os);
+        Disassembler(Blob const& blob, std::ostream& os = std::cout);
 
         void dumpAll();
         void dumpStrings();
@@ -34,6 +34,8 @@ namespace bits
         void dumpTypeSpecs();
         void dumpConstants();
         void dumpText();
+
+        bool functionAt(int pc, std::string& name, int& offset);
 
     private:
         void M_dumpSignature(blob_idx sigidx);

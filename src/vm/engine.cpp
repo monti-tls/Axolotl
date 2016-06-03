@@ -27,6 +27,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
+#include <iomanip>
 
 using namespace vm;
 using namespace bits;
@@ -47,6 +48,8 @@ Engine::Engine(Module const& main_module)
 
     m_argc = 0;
     m_locals_count = 0;
+    m_debug.has = false;
+    m_pc = -1;
 }
 
 Engine::~Engine()
@@ -71,7 +74,7 @@ Object Engine::execute(Function const& fun, std::vector<Object> const& args)
 
     // Push a dummy stack frame, when we will
     //   reach it execution will stop
-    M_push(M_makeFrame(true));
+    M_enter(true);
     m_argc = (int) args.size();
 
     // Branch to the function
@@ -110,14 +113,20 @@ bool Engine::M_checkOpcode(Opcode opcode) const
 Object& Engine::M_top()
 {
     if (!m_stack.size())
-        throw std::runtime_error("vm::Engine::M_top: stack is empty");
+    {
+        throw InternalError("vm::Engine::M_top: stack is empty");
+        // throw std::runtime_error("vm::Engine::M_top: stack is empty");
+    }
     return m_stack.back();
 }
 
 Object const& Engine::M_top() const
 {
     if (!m_stack.size())
-        throw std::runtime_error("vm::Engine::M_top: stack is empty");
+    {
+        throw InternalError("vm::Engine::M_top: stack is empty");
+        // throw std::runtime_error("vm::Engine::M_top: stack is empty");
+    }
     return m_stack.back();
 }
 
@@ -149,14 +158,20 @@ int Engine::M_stackIndex() const
 core::Object& Engine::M_stackAt(int index)
 {
     if (index < 0 || index >= (int) m_stack.size())
-        throw std::runtime_error("vm::Engine::M_stackAt: invalid index");
+    {
+        throw InternalError("vm::Engine::M_stackAt: invalid index");
+        // throw std::runtime_error("vm::Engine::M_stackAt: invalid index");
+    }
     return m_stack.at(index);
 }
 
 core::Object const& Engine::M_stackAt(int index) const
 {
     if (index < 0 || index >= (int) m_stack.size())
-        throw std::runtime_error("vm::Engine::M_stackAt: invalid index");
+    {
+        throw InternalError("vm::Engine::M_stackAt: invalid index");
+        // throw std::runtime_error("vm::Engine::M_stackAt: invalid index");
+    }
     return m_stack.at(index);
 }
 
@@ -167,13 +182,19 @@ void Engine::M_changeModule(Module const& module)
 
     m_text = module.blob().text();
     if (!m_text)
-        throw std::runtime_error("vm::Engine::M_changeModule: module has no text");
+    {
+        throw InternalError("vm::Engine::M_changeModule: module has no text");
+        // throw std::runtime_error("vm::Engine::M_changeModule: module has no text");
+    }
 
     blob_debug_header* debug_header = module.blob().debugHeader();
     if (debug_header)
     {
         if (!module.blob().string(debug_header->d_file, m_debug.file))
-            throw std::runtime_error("vm::Engine::M_changeModule: file name in debug header invalid");
+        {
+            throw InternalError("vm::Engine::M_changeModule: file name in debug header invalid");
+            // throw std::runtime_error("vm::Engine::M_changeModule: file name in debug header invalid");
+        }
     }
 
     if (m_module)
@@ -184,9 +205,15 @@ void Engine::M_changeModule(Module const& module)
 uint32_t Engine::M_fetch()
 {
     if (!m_text)
-        throw std::runtime_error("vm::Engine::M_fetch: no text");
+    {
+        throw InternalError("vm::Engine::M_fetch: no text");
+        // throw std::runtime_error("vm::Engine::M_fetch: no text");
+    }
     if (m_pc < 0 || m_pc >= (int) (m_text->size() / sizeof(uint32_t)))
-        throw std::runtime_error("vm::Engine::M_fetch: invalid PC");
+    {
+        throw InternalError("vm::Engine::M_fetch: invalid PC");
+        // throw std::runtime_error("vm::Engine::M_fetch: invalid PC");
+    }
 
     return *((uint32_t*) m_text->raw(sizeof(uint32_t) * m_pc++, sizeof(uint32_t)));
 }
@@ -203,7 +230,10 @@ void Engine::M_decode()
 
         blob_debug_entry* entry = m_module->blob().debugEntry(idx);
         if (!entry)
-            M_error("M_decode: invalid debug entry index");
+        {
+            throw InternalError("vm::Engine::M_decode: invalid debug entry index");
+            // M_error("M_decode: invalid debug entry index");
+        }
 
         m_debug.has = true;
         m_debug.line = entry->de_line;
@@ -214,7 +244,10 @@ void Engine::M_decode()
         m_debug.has = false;
 
     if (!M_checkOpcode(m_ir))
-        throw std::runtime_error("vm::Engine::M_decode: invalid instruction opcode");
+    {
+        throw InternalError("vm::Engine::M_decode: invalid instruction opcode");
+        // throw std::runtime_error("vm::Engine::M_decode: invalid instruction opcode");
+    }
 
     // Get the operands
     m_operands.clear();
@@ -224,279 +257,326 @@ void Engine::M_decode()
 
 bool Engine::M_execute()
 {
-    M_decode();
-
-    switch (m_ir)
+    try
     {
-        case NOP:
-            break;
+        M_decode();
 
-        case POP:
-            M_pop();
-            break;
-
-        case LOAD_LOCAL:
-        case STOR_LOCAL:
+        switch (m_ir)
         {
-            int index = m_operands[0];
+            case NOP:
+                break;
 
-            // Check operands
-            if (index < 0 ||
-                index >= m_locals_count)
-                M_error("M_execute: invalid local index");
+            case POP:
+                M_pop();
+                break;
 
-            // Get the local
-            Object& local = M_stackAt(m_locals_start + index);
-
-            if (m_ir == LOAD_LOCAL)
-                M_push(local);
-            else // if (m_ir == STOR_LOCAL)
-                local = M_pop();
-
-            break;
-        }
-
-        case LOAD_CONST:
-        {
-            int index = m_operands[0];
-
-            // Load a constant from the consts table
-            if (index >= 0)
+            case LOAD_LOCAL:
+            case STOR_LOCAL:
             {
-                M_push(m_module->constant(index).copy());
-            }
-            // Load an argument
-            else
-            {
-                // local #n
-                //  ...
-                // local #0 <-- locals_start
-                // <frame>
-                // arg #n
-                // ...
-                // arg #i   <-- locals_start - 1 - argc + i
-                // ...
-                // arg #0
-                //
-                // We have i = 1 - index, so
-                //   the argument index in the stack is
-                //   locals_start - 1 - argc + 1 - index
-                //   = locals_start - argc - index (with index < 0)
+                int index = m_operands[0];
 
-                M_push(M_stackAt(m_locals_start - m_argc - index-2));
+                // Check operands
+                if (index < 0 ||
+                    index >= m_locals_count)
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid local index");
+                    // M_error("M_execute: invalid local index");
+                }
+
+                // Get the local
+                Object& local = M_stackAt(m_locals_start + index);
+
+                if (m_ir == LOAD_LOCAL)
+                    M_push(local);
+                else // if (m_ir == STOR_LOCAL)
+                    local = M_pop();
+
+                break;
             }
 
-            break;
-        }
-
-        case LOAD_GLOBAL:
-        case STOR_GLOBAL:
-        {
-            // Get and check the operand
-            std::string name;
-            if (!m_module->blob().string(m_operands[0], name))
-                M_error("M_execute: invalid string index");
-
-            // Get the global
-            Object& global = m_module->global(name);
-
-            if (m_ir == LOAD_GLOBAL)
-                M_push(global);
-            else // if (m_ir == STOR_GLOBAL)
-                global = M_pop();
-
-            break;
-        }
-
-        case LOAD_MEMBER:
-        case STOR_MEMBER:
-        {
-            // Get and check the operand
-            std::string name;
-            if (!m_module->blob().string(m_operands[0], name))
-                M_error("M_execute: invalid string index");
-
-            // Get the object
-            Object self = M_pop();
-
-            if (m_ir == LOAD_MEMBER)
+            case LOAD_CONST:
             {
+                int index = m_operands[0];
+
+                // Load a constant from the consts table
+                if (index >= 0)
+                {
+                    M_push(m_module->constant(index).copy());
+                }
+                // Load an argument
+                else
+                {
+                    // local #n
+                    //  ...
+                    // local #0 <-- locals_start
+                    // <frame>
+                    // arg #n
+                    // ...
+                    // arg #i   <-- locals_start - 1 - argc + i
+                    // ...
+                    // arg #0
+                    //
+                    // We have i = 1 - index, so
+                    //   the argument index in the stack is
+                    //   locals_start - 1 - argc + 1 - index
+                    //   = locals_start - argc - index (with index < 0)
+
+                    M_push(M_stackAt(m_locals_start - m_argc - index-2));
+                }
+
+                break;
+            }
+
+            case LOAD_GLOBAL:
+            case STOR_GLOBAL:
+            {
+                // Get and check the operand
+                std::string name;
+                if (!m_module->blob().string(m_operands[0], name))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
+
+                // Get the global
+                Object& global = m_module->global(name);
+
+                if (m_ir == LOAD_GLOBAL)
+                    M_push(global);
+                else // if (m_ir == STOR_GLOBAL)
+                    global = M_pop();
+
+                break;
+            }
+
+            case LOAD_MEMBER:
+            case STOR_MEMBER:
+            {
+                // Get and check the operand
+                std::string name;
+                if (!m_module->blob().string(m_operands[0], name))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
+
+                // Get the object
+                Object self = M_pop();
+
+                if (m_ir == LOAD_MEMBER)
+                {
+                    M_push(((Object const&) self).member(name));
+                }
+                else // if (m_ir == STOR_MEMBER)
+                {
+                    self.member(name) = M_pop();
+                }
+
+                break;
+            }
+
+            case INVOKE:
+            {
+                int argc = m_operands[0];
+
+                // Check operand
+                if (argc < 0)
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid operand");
+                    // M_error("M_execute: invalid operand");
+                }
+
+                M_invoke(M_pop(), argc);
+                break;
+            }
+
+            case METHOD:
+            {
+                std::string name;
+                if (!m_module->blob().string(m_operands[0], name))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
+
+                int argc = m_operands[1];
+                if (argc < 0)
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid operand");
+                    // M_error("M_execute: invalid operand");
+                }
+
+                Object self = M_pop();
                 if (!self.has(name))
-                    M_error("M_execute: member '" + name + "' does not exists for class '" + self.classname() + "'");
-                M_push(self.member(name));
+                {
+                    throw NoMemberError(self, name);
+                    // M_error("M_execute: method '" + name + "' does not exists for class '" + self.classname() + "'");
+                }
+
+                // Insert the 'self' object on the stack
+                std::vector<Object> argv(argc + 1, Object::nil());
+                argv[0] = self;
+                for (int i = 0; i < argc; ++i)
+                    argv[argc - i] = M_pop();
+
+                Object const& fun = self.findPolymorphic(name, argv);
+                if (fun.isNil())
+                {
+                    throw SignatureError(self, name, argv);
+                }
+
+                for (auto arg : argv)
+                    M_push(arg);
+
+                M_invoke(fun, argc + 1);
+
+                break;
             }
-            else // if (m_ir == STOR_MEMBER)
+
+            case RETURN:
+            case LEAVE:
             {
-                self.member(name) = M_pop();
+                Object ret = Object::nil();
+
+                if (m_ir == RETURN)
+                    ret = M_pop();
+
+                bool dummy = M_leave();
+
+                M_push(ret);
+                
+                if (dummy)
+                    return false;
+
+                break;
             }
 
-            break;
-        }
-
-        case INVOKE:
-        {
-            int argc = m_operands[0];
-
-            // Check operand
-            if (argc < 0)
-                M_error("M_execute: invalid operand");
-
-            M_invoke(M_pop(), argc);
-            break;
-        }
-
-        case METHOD:
-        {
-            std::string name;
-            if (!m_module->blob().string(m_operands[0], name))
-                M_error("M_execute: invalid string index");
-
-            int argc = m_operands[1];
-            if (argc < 0)
-                M_error("M_execute: invalid operand");
-
-            Object self = M_pop();
-            if (!self.has(name))
-                M_error("M_execute: method '" + name + "' does not exists for class '" + self.classname() + "'");
-
-            // Insert the 'self' object on the stack
-            std::vector<Object> argv(argc + 1, Object::nil());
-            argv[0] = self;
-            for (int i = 0; i < argc; ++i)
-                argv[argc - i] = M_pop();
-
-            Object const& fun = self.findPolymorphic(name, argv);
-
-            for (auto arg : argv)
-                M_push(arg);
-
-            M_invoke(fun, argc + 1);
-
-            break;
-        }
-
-        case RETURN:
-        case LEAVE:
-        {
-            Object ret = Object::nil();
-
-            if (m_ir == RETURN)
-                ret = M_pop();
-
-            bool dummy = M_leave();
-
-            M_push(ret);
-            
-            if (dummy)
-                return false;
-
-            break;
-        }
-
-        case JMP:
-        case JMPR:
-        {
-            int base = 0;
-            if (m_ir == JMPR)
-                base = m_pc;
-
-            m_pc = base + m_operands[0];
-
-            break;
-        }
-
-        case JMP_IF_FALSE:
-        case JMPR_IF_FALSE:
-        {
-            Object cond = M_pop();
-            if (!cond.meta().is<bool>())
-                M_error("M_execute: conditional is not a boolean");
-
-            if (!cond.unwrap<bool>())
+            case JMP:
+            case JMPR:
             {
                 int base = 0;
-                if (m_ir == JMPR_IF_FALSE)
+                if (m_ir == JMPR)
                     base = m_pc;
 
                 m_pc = base + m_operands[0];
+
+                break;
             }
 
-            break;
-        }
-
-        case JMP_IF_TRUE:
-        case JMPR_IF_TRUE:
-        {
-            Object cond = M_pop();
-            if (!cond.meta().is<bool>())
-                M_error("M_execute: conditional is not a boolean");
-
-            if (cond.unwrap<bool>())
+            case JMP_IF_FALSE:
+            case JMPR_IF_FALSE:
             {
-                int base = 0;
-                if (m_ir == JMPR_IF_TRUE)
-                    base = m_pc;
+                Object cond = M_pop();
+                if (!cond.meta().is<bool>())
+                {
+                    throw ClassError(cond, type_class<bool>());
+                    // M_error("M_execute: conditional is not a boolean");
+                }
 
-                m_pc = base + m_operands[0];
+                if (!cond.unwrap<bool>())
+                {
+                    int base = 0;
+                    if (m_ir == JMPR_IF_FALSE)
+                        base = m_pc;
+
+                    m_pc = base + m_operands[0];
+                }
+
+                break;
             }
 
-            break;
-        }
-
-        case IMPORT:
-        {
-            std::string name;
-            if (!m_module->blob().string(m_operands[0], name))
-                M_error("M_execute: invalid string index");
-
-            Module module;
-
-            if (!m_import_table->exists(name))
+            case JMP_IF_TRUE:
+            case JMPR_IF_TRUE:
             {
-                module = m_import_table->import(*m_module, name);
-                module.setEngine(this);
+                Object cond = M_pop();
+                if (!cond.meta().is<bool>())
+                {
+                    throw ClassError(cond, type_class<bool>());
+                    // M_error("M_execute: conditional is not a boolean");
+                }
+
+                if (cond.unwrap<bool>())
+                {
+                    int base = 0;
+                    if (m_ir == JMPR_IF_TRUE)
+                        base = m_pc;
+
+                    m_pc = base + m_operands[0];
+                }
+
+                break;
             }
-            else
-                module = m_import_table->module(name);
 
-            if (!module.initCalled())
-                module.init();
-
-            break;
-        }
-
-        case IMPORT_MASK:
-        {
-            std::string name;
-            if (!m_module->blob().string(m_operands[0], name))
-                M_error("M_execute: invalid string index");
-
-            std::string mask;
-            if (!m_module->blob().string(m_operands[1], mask))
-                M_error("M_execute: invalid string index");
-
-            Module module;
-
-            if (!m_import_table->exists(name))
+            case IMPORT:
             {
-                module = m_import_table->importMask(*m_module, name, mask);
-                module.setEngine(this);
+                std::string name;
+                if (!m_module->blob().string(m_operands[0], name))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
+
+                Module module;
+
+                if (!m_import_table->exists(name))
+                {
+                    module = m_import_table->import(*m_module, name);
+                    module.setEngine(this);
+                }
+                else
+                    module = m_import_table->module(name);
+
+                if (!module.initCalled())
+                    module.init();
+
+                break;
             }
-            else
-                module = m_import_table->module(name);
 
-            if (!module.initCalled())
-                module.init();
+            case IMPORT_MASK:
+            {
+                std::string name;
+                if (!m_module->blob().string(m_operands[0], name))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
 
-            break;
+                std::string mask;
+                if (!m_module->blob().string(m_operands[1], mask))
+                {
+                    throw InternalError("vm::Engine::M_execute: invalid string index");
+                    // M_error("M_execute: invalid string index");
+                }
+
+                Module module;
+
+                if (!m_import_table->exists(name))
+                {
+                    module = m_import_table->importMask(*m_module, name, mask);
+                    module.setEngine(this);
+                }
+                else
+                    module = m_import_table->module(name);
+
+                if (!module.initCalled())
+                    module.init();
+
+                break;
+            }
+
+            default:
+                throw InternalError("vm::Engine::M_execute: invalid opcode");
+                // M_error("M_execute: invalid opcode");
+                break;
         }
 
-        default:
-            M_error("M_execute: invalid opcode");
-            break;
+        return true;
     }
-
-    return true;
+    catch (Exception const& error)
+    {
+        M_error(error.what());
+        return false;
+    }
 }
 
 StackFrame Engine::M_makeFrame(bool dummy) const
@@ -511,6 +591,8 @@ StackFrame Engine::M_makeFrame(bool dummy) const
     frame.locals_start = m_locals_start;
     frame.locals_count = m_locals_count;
     frame.argc = m_argc;
+    if (m_debug.has)
+        frame.debug = m_debug;
 
     return frame;
 }
@@ -540,12 +622,18 @@ void Engine::M_invoke(Object fun, int argc)
         fun = fun.findPolymorphic(lang::std_call, argv);
 
     if (!fun.callable())
-        M_error("M_invoke: object is not invokable");
+    {
+        throw SignatureError(fun, "", argv);
+        // M_error("M_invoke: object is not invokable");
+    }
 
     Callable call = fun.unwrap<Callable>();
 
     if (!call.signature().match(argv))
-        M_error("signature mismatch");
+    {
+        throw SignatureError(fun, "", argv);
+        // M_error("signature mismatch");
+    }
 
     if (call.kind() == Callable::Kind::Native)
     {
@@ -557,19 +645,30 @@ void Engine::M_invoke(Object fun, int argc)
         for (auto arg : argv)
             M_push(arg);
 
-        M_push(M_makeFrame());
+        M_enter();
         M_branchToFunction(call.meta().as<Function>());
         m_argc = argc;
     }
 }
 
+void Engine::M_enter(bool dummy)
+{
+    M_push(M_makeFrame(dummy));
+    m_backtrace.push_back(M_stackIndex());
+}
+
 bool Engine::M_leave()
 {
+    m_backtrace.pop_back();
+
     M_shrinkStack(m_locals_count);
     
     Object frame = M_pop();
     if (!frame.meta().is<StackFrame>())
-        M_error("M_leave: can't find the call frame");
+    {
+        throw InternalError("vm::Engine::M_leave: stack was smashed and no stack frame was found");
+        // M_error("M_leave: can't find the call frame");
+    }
 
     int argc = m_argc;
     bool dummy = M_setFrame(frame.unwrap<StackFrame>());
@@ -591,13 +690,16 @@ void Engine::M_error(std::string const& msg) const
 {
     std::ostringstream ss;
 
+    std::string prefix = "";
     if (m_debug.has)
     {
+        std::ostringstream ss;
         ss << util::ansi::bold << m_debug.file << ":" << m_debug.line << ":" << m_debug.col << ": ";
         ss << util::ansi::clear;
+        prefix = ss.str();
     }
 
-    ss << util::ansi::bold << lang::ParserBase::error_color;
+    ss << prefix << util::ansi::bold << lang::ParserBase::error_color;
     ss << "runtime error: " << util::ansi::clear;
     ss << msg << std::endl;
 
@@ -630,9 +732,62 @@ void Engine::M_error(std::string const& msg) const
         }
     }
 
-    ss << util::ansi::bold << lang::ParserBase::note_color;
-    ss << "while executing: " << util::ansi::clear;
-    ss << opcode_as_string(m_ir) << std::endl;
+    ss << prefix << util::ansi::bold << lang::ParserBase::note_color;
+    ss << "backtrace: " << util::ansi::clear << std::endl;
 
-    throw std::runtime_error(ss.str());
+    for (int i = m_backtrace.size() - 1; i >= 0; --i)
+    {
+        std::ostringstream ss2;
+
+        Object const& obj = M_stackAt(m_backtrace[i]);
+
+        if (!obj.meta().is<StackFrame>())
+            ss2 << "< " << util::ansi::bold << lang::ParserBase::error_color << "bogus" << util::ansi::clear << " >" << std::endl;
+        else
+        {
+            StackFrame frame = obj.unwrap<StackFrame>();
+
+            ss2 << util::ansi::bold << frame.module.name() << ".";
+
+            bits::Disassembler dis(frame.module.blob());
+            std::string name;
+            int offset;
+            if (dis.functionAt(frame.pc, name, offset))
+            {
+                ss2 << name << util::ansi::clear << " + " << offset;
+            }
+            else
+                ss2 << "???" << util::ansi::clear;
+
+            if (frame.debug.is<DebugInfo>())
+            {
+                DebugInfo info = frame.debug.as<DebugInfo>();
+
+                std::ifstream is(info.file);
+                if (is)
+                {
+                    std::string previous = ss2.str();
+                    ss2.str("");
+
+                    ss2 << std::setw(56) << std::left << previous << std::right << " ";
+
+                    std::size_t pos;
+                    std::string line = lang::Lexer::snippet(is, info.line, info.col, pos);
+                    std::string fmt = lang::ParserBase::emph_color;
+                    line.insert(pos, fmt);
+                    std::size_t end = std::min(line.size()-1, pos + fmt.size() + info.extent);
+                    line.insert(end, util::ansi::clear);
+                    ss2 << "        " << util::ansi::bold << info.file << ":" << info.line << ":" << info.col << ": ";
+                    ss2 << util::ansi::clear << line << std::endl;
+                }
+            }
+            else
+                ss2 << std::endl;
+        }
+
+        ss << ss2.str();
+    }
+
+    std::cerr << ss.str();
+    std::terminate();
 }

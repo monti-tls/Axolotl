@@ -4,6 +4,7 @@
 #include "core/ppack.hpp"
 #include "core/some.hpp"
 #include "core/class.hpp"
+#include "core/exception.hpp"
 
 #include <map>
 #include <string>
@@ -31,7 +32,10 @@ namespace core
     {
         auto it = detail::type_registry->find(typeId);
         if (it != detail::type_registry->end())
-            throw std::runtime_error("core::associate: type is already associated with class `" + it->second.classname() + "'");
+        {
+            throw InternalError("core::associate: type is already associated with class `" + it->second.classname() + "'");
+            // throw std::runtime_error("core::associate: type is already associated with class `" + it->second.classname() + "'");
+        }
 
         detail::type_registry->insert(std::make_pair(typeId, c));
         return c;
@@ -45,7 +49,10 @@ namespace core
     {
         auto it = detail::type_registry->find(typeId);
         if (it == detail::type_registry->end())
-            throw std::runtime_error("core::typeClass: type is not associated");
+        {
+            throw InternalError("core::typeClass: type is not associated");
+            // throw std::runtime_error("core::typeClass: type is not associated");
+        }
 
         return it->second;
     }
@@ -62,7 +69,8 @@ namespace core
                 return it.first;
         }
 
-        throw std::runtime_error("core::classType: class is not associated with a type");
+        throw InternalError("core::classType: class is not associated with a type");
+        // throw std::runtime_error("core::classType: class is not associated with a type");
     }
 
     static inline std::size_t class_type(Class const& c)
@@ -76,7 +84,8 @@ namespace core
                 return it.second;
         }
 
-        throw std::runtime_error("core::class_from_classid: ??");
+        throw InternalError("core::class_from_classid: ??");
+        // throw std::runtime_error("core::class_from_classid: ??");
     }
 
     template <typename T>
@@ -125,14 +134,6 @@ namespace core
     {
         return construct_scalar(Callable(std::function<TRet(TArgs...)>(function_ptr)));
     }
-
-    /*template <typename T, typename... TArgs>
-    static inline Object construct(void(T::*member_ptr)(TArgs...))
-    {
-        auto proxy = [=](T& self, TArgs... args)
-        { (self.*member_ptr)(args...); };
-        return construct_scalar(std::function<void(T&, TArgs...)>(proxy));
-    }*/
 
     template <typename T, typename TRet, typename... TArgs>
     static inline Object construct(TRet(T::*member_ptr)(TArgs...))

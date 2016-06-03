@@ -55,7 +55,9 @@ Script::~Script()
 void Script::addModule(Module const& module)
 {
     if (m_built)
-        throw std::runtime_error("vm::Script::addModule: script is already built");
+    {
+        throw core::InternalError("vm::Script::addModule: script is already built");
+    }
 
     m_import_table->addModule(module);
 }
@@ -64,7 +66,9 @@ void Script::fromFile(std::string const& filename)
 {
     std::ifstream fs(filename);
     if (!fs)
-        throw std::runtime_error("vm::Script::fromFile: unable to open `" + filename + "'");
+    {
+        throw core::NoFileError(filename);
+    }
     fromStream(fs);
 }
 
@@ -78,7 +82,9 @@ void Script::fromString(std::string const& str)
 void Script::fromStream(std::istream& is)
 {
     if (m_built)
-        throw std::runtime_error("vm::Script::fromStream: script is already built");
+    {
+        throw core::InternalError("vm::Script::fromStream: script is already built");
+    }
 
     m_module = Module(std_main, m_import_table);
     m_import_table = nullptr;

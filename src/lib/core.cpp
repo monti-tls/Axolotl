@@ -145,6 +145,7 @@ void Core::record()
     {
         Class c("core", "char");
         c["char"]     = [](char a) { return a; };
+        c[std_sub]    = [](char a, char b) { return (int) (a - b); };
         c[std_equals] = [](char a, char b) { return a == b; };
         c[std_lt]     = [](char a, char b) { return a < b; };
         c[std_serialize] = [](char a)
@@ -171,6 +172,8 @@ void Core::record()
         c["get"]         = [](std::string const& a, int i) { return a.at(i); };
         c["size"]        = [](std::string const& a) { return (int) a.size(); };
         c["set"]         = [](std::string& a, int i, char c) { a[i] = c; };
+        c["append"]      = [](std::string& a, char c) { a += c; };
+        c["extend"]      = [](std::string& a, std::string const& b) { a += b; };
         c[std_serialize] = [](std::string const& a)
         {
             return a;

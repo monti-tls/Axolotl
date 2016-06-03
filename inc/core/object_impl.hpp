@@ -32,7 +32,10 @@ namespace core
     T& Object::unwrap()
     {
         if (!m_impl->meta.is<T>())
-            throw std::runtime_error("attempt to unwrap a object of incompatible type");
+        {
+            throw InternalError("core::Object::unwrap: incompatible types");
+            // throw std::runtime_error("attempt to unwrap a object of incompatible type");
+        }
 
         return m_impl->meta.as<T>();
     }
@@ -41,7 +44,10 @@ namespace core
     T const& Object::unwrap() const
     {
         if (!m_impl->meta.is<T>())
-            throw std::runtime_error("attempt to unwrap a object of incompatible type");
+        {
+            throw InternalError("core::Object::unwrap: incompatible types");
+            // throw std::runtime_error("attempt to unwrap a object of incompatible type");
+        }
 
         return m_impl->meta.as<T>();
     }

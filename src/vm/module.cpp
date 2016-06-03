@@ -83,7 +83,9 @@ bool Module::operator==(Module const& other) const
 std::string const& Module::name() const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::name: access to empty module");
+    {
+        throw core::InternalError("vm::Module::name: access to empty module");
+    }
     
     return m_impl->name;
 }
@@ -91,7 +93,9 @@ std::string const& Module::name() const
 Object& Module::global(std::string const& name)
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::global: access to empty module");
+    {
+        throw core::InternalError("vm::Module::global: access to empty module");
+    }
     
     return m_impl->globals[name];
 }
@@ -99,18 +103,24 @@ Object& Module::global(std::string const& name)
 Object const& Module::global(std::string const& name) const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::global: access to empty module");
+    {
+        throw core::InternalError("vm::Module::global: access to empty module");
+    }
     
     auto it = m_impl->globals.find(name);
     if (it == m_impl->globals.end())
-        throw std::runtime_error("vm::Module::global: global '" + name + "' does not exists");
+    {
+        throw NoGlobalError(*this, name);
+    }
     return it->second;
 }
 
 int Module::addConstant(Object const& value)
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::addConstant: access to empty module");
+    {
+        throw core::InternalError("vm::Module::addConstant: access to empty module");
+    }
     
     m_impl->constants.push_back(value);
     return (int) m_impl->constants.size() - 1;
@@ -119,10 +129,14 @@ int Module::addConstant(Object const& value)
 Object const& Module::constant(int index) const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::constant: access to empty module");
+    {
+        throw core::InternalError("vm::Module::constant: access to empty module");
+    }
     
     if (index < 0 || index >= (int) m_impl->constants.size())
-        throw std::runtime_error("vm::Module::global: constant access out of bounds");
+    {
+        throw core::InternalError("vm::Module::global: constant access out of bounds");
+    }
 
     return m_impl->constants[index];
 }
@@ -130,7 +144,9 @@ Object const& Module::constant(int index) const
 void Module::setBlob(Blob const& blob)
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::setBlob: access to empty module");
+    {
+        throw core::InternalError("vm::Module::setBlob: access to empty module");
+    }
     
     m_impl->blob = blob;
     m_impl->blob.setModuleName(m_impl->name);
@@ -143,7 +159,9 @@ void Module::setBlob(Blob const& blob)
 Blob const& Module::blob() const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::blob: access to empty module");
+    {
+        throw core::InternalError("vm::Module::blob: access to empty module");
+    }
     
     return m_impl->blob;
 }
@@ -151,7 +169,9 @@ Blob const& Module::blob() const
 void Module::setEngine(Engine* engine)
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::setEngine: access to empty module");
+    {
+        throw core::InternalError("vm::Module::setEngine: access to empty module");
+    }
     
     m_impl->engine = engine;
 }
@@ -159,7 +179,9 @@ void Module::setEngine(Engine* engine)
 Engine* Module::engine() const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::engine: access to empty module");
+    {
+        throw core::InternalError("vm::Module::engine: access to empty module");
+    }
     
     return m_impl->engine;
 }
@@ -167,7 +189,9 @@ Engine* Module::engine() const
 ImportTable* Module::importTable()
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::importTable: access to empty module");
+    {
+        throw core::InternalError("vm::Module::importTable: access to empty module");
+    }
     
     if (m_impl->import_table)
         return m_impl->import_table;
@@ -180,7 +204,9 @@ ImportTable* Module::importTable()
 ImportTable* Module::detachImportTable()
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::detachImportTable: access to empty module");
+    {
+        throw core::InternalError("vm::Module::detachImportTable: access to empty module");
+    }
     
     ImportTable* table = m_impl->import_table;
     m_impl->import_table = nullptr;
@@ -190,10 +216,14 @@ ImportTable* Module::detachImportTable()
 void Module::exportTo(Module& to, std::string const& mask, std::string const& alias, core::Object const& extra) const
 {
     if (!m_impl || !to.m_impl)
-        throw std::runtime_error("vm::Module::exportTo: access to empty module");
+    {
+        throw core::InternalError("vm::Module::exportTo: access to empty module");
+    }
 
     if (to.m_impl == m_impl)
-        throw std::runtime_error("vm::Module::exportTo: can't export module to itself");
+    {
+        throw core::InternalError("vm::Module::exportTo: can't export module to itself");
+    }
 
     for (auto& it : m_impl->globals)
     {
@@ -228,7 +258,9 @@ void Module::exportTo(Module& to, std::string const& mask, std::string const& al
 bool Module::initCalled() const
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::initCalled: access to empty module");
+    {
+        throw core::InternalError("vm::Module::initCalled: access to empty module");
+    }
 
     return m_impl->init_called;
 }
@@ -236,7 +268,9 @@ bool Module::initCalled() const
 void Module::init()
 {
     if (!m_impl)
-        throw std::runtime_error("vm::Module::init: access to empty module");
+    {
+        throw core::InternalError("vm::Module::init: access to empty module");
+    }
     
     if (!initCalled())
     {
@@ -277,10 +311,14 @@ void Module::M_processSymbols()
         {
             std::string name;
             if (!m_impl->blob.string(sym->s_name, name))
-                throw std::runtime_error("vm::Module::M_processSymbols: invalid symbol");
+            {
+                throw core::InternalError("vm::Module::M_processSymbols: invalid symbol");
+            }
 
             if (m_impl->globals.find(name) != m_impl->globals.end())
-                throw std::runtime_error("vm::Module::M_processSymbols: symbol \'" + name + "' redefined");
+            {
+                throw core::InternalError("vm::Module::M_processSymbols: symbol \'" + name + "' redefined");
+            }
 
             m_impl->globals[name] = M_makeFunction(sym);
         }
@@ -293,7 +331,9 @@ void Module::M_processTypeSpecs()
     {
         std::string type_name;
         if (!m_impl->blob.string(tspec->ts_name, type_name))
-            throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid type specification");
+        {
+            throw core::InternalError("vm::Module::M_processTypeSpecs: invalid type specification");
+        }
 
         Class c(m_impl->name, type_name, true);
 
@@ -304,7 +344,9 @@ void Module::M_processTypeSpecs()
             std::string name;
             if (!sym || !m_impl->blob.string(sym->s_name, name) ||
                 sym->s_type != BLOB_SYMT_METHOD)
-                throw std::runtime_error("vm::Module::M_processTypeSpecs: invalid symbol");
+            {
+                throw core::InternalError("vm::Module::M_processTypeSpecs: invalid symbol");
+            }
 
             c.addMember(name, M_makeFunction(sym));
         });
@@ -319,7 +361,9 @@ void Module::M_processConstants()
     {
         std::string serialized;
         if (!m_impl->blob.string(cst->c_serialized, serialized))
-            throw std::runtime_error("vm::Module::M_processConstants: invalid constant");
+        {
+            throw core::InternalError("vm::Module::M_processConstants: invalid constant");
+        }
         
         addConstant(class_from_classid(cst->c_classid).unserialize(serialized));
     });

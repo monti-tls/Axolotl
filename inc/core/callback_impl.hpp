@@ -18,6 +18,7 @@
 #define __AXOLOTL_CORE_CALLBACK_IMPL_H__
 
 #include "core/ppack.hpp"
+#include "core/exception.hpp"
 
 #include <stdexcept>
 
@@ -29,7 +30,10 @@ namespace core
         if (this->m_variadic)
             args = { args };
         else if (sizeof...(TArgs) != args.size())
-            throw std::runtime_error("wrong number of arguments");
+        {
+            throw InternalError("CallbackImpl::invoke: wrong number of arguments");
+            // throw std::runtime_error("wrong number of arguments");
+        }
 
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(args.begin(), (typename std::remove_reference<TArgs>::type*)nullptr...);
         return construct(applyTuple(this->m_fun, tp));
@@ -50,7 +54,10 @@ namespace core
         if (this->m_variadic)
             args = { args };
         else  if (sizeof...(TArgs) != args.size())
-            throw std::runtime_error("wrong number of arguments");
+        {
+            throw InternalError("CallbackImpl::invoke: wrong number of arguments");
+            // throw std::runtime_error("wrong number of arguments");
+        }
 
         std::tuple<typename std::remove_reference<TArgs>::type&...> tp = vec2tuple(args.begin(), (typename std::remove_reference<TArgs>::type*) nullptr...);
         applyTuple(this->m_fun, tp);

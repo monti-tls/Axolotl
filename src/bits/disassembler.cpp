@@ -327,3 +327,39 @@ void Disassembler::M_dumpSignature(blob_idx sigidx)
         m_os << args[i] << (i == (int) args.size() - 1 ? "" : ", ");
     m_os << ')';
 }
+
+bool Disassembler::functionAt(int pc, std::string& name, int& offset)
+{
+    std::shared_ptr<Buffer> text = m_blob.text();
+    if (!text)
+        return false;
+
+    int count = (int) (text->size() / sizeof(uint32_t));
+    if (pc < 0 || pc > count)
+        return false;
+
+    std::vector<std::pair<int, blob_symbol*>> sym_addrs;
+    m_blob.foreachSymbol([&](blob_idx, blob_symbol* sym)
+    {
+        sym_addrs.push_back(std::make_pair((int) sym->s_addr, sym));
+    });
+
+    blob_symbol* symbol = nullptr;
+    for (int i = 0; i < (int) (sym_addrs.size()-1); ++i)
+    {
+        if (pc >= sym_addrs[i].first &&
+            pc < sym_addrs[i + 1].first)
+        {
+            symbol = sym_addrs[i].second;
+            break;
+        }
+    }
+
+    if (!symbol)
+        return false;
+
+    if (!m_blob.string(symbol->s_name, name))
+        return false;
+    offset = pc - symbol->s_addr;
+    return true;
+}

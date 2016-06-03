@@ -305,6 +305,13 @@ std::string Lexer::snippet(std::istream& is, std::size_t line, std::size_t col, 
     is.seekg(saved_pos, std::ios::beg);
     is.setstate(saved_state);
 
+
+    while (read.size() && std::isspace(read[0]))
+    {
+        read.erase(read.begin());
+        --pos;
+    }
+
     return read;
 }
 

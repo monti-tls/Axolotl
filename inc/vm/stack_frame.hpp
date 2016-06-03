@@ -17,6 +17,7 @@
 #ifndef __AXOLOTL_VM_STACK_FRAME_H__
 #define __AXOLOTL_VM_STACK_FRAME_H__
 
+#include "core/some.hpp"
 #include "vm/forward.hpp"
 #include "vm/module.hpp"
 
@@ -30,6 +31,7 @@ namespace vm
         int locals_start;
         int locals_count;
         int argc;
+        core::Some debug;
     };
 }
 

@@ -31,6 +31,16 @@ namespace vm
 {
     class Engine
     {
+    private:
+        struct DebugInfo
+        {
+            bool has;
+            std::string file;
+            std::size_t line;
+            std::size_t col;
+            std::size_t extent;
+        };
+
     public:
         Engine(Module const& main_module);
         ~Engine();
@@ -59,6 +69,7 @@ namespace vm
         StackFrame M_makeFrame(bool dummy = false) const;
         bool M_setFrame(StackFrame const& frame);
         void M_invoke(core::Object fun, int argc);
+        void M_enter(bool dummy = false);
         bool M_leave();
         void M_branchToFunction(Function const& fun);
         void M_error(std::string const& msg) const;
@@ -69,16 +80,10 @@ namespace vm
 
         std::vector<core::Object> m_stack;
         std::shared_ptr<bits::Buffer> m_text;
+        std::vector<int> m_backtrace;
 
         bits::Opcode m_ir;
-        struct
-        {
-            bool has;
-            std::string file;
-            std::size_t line;
-            std::size_t col;
-            std::size_t extent;
-        } m_debug;
+        DebugInfo m_debug;
         std::vector<uint32_t> m_operands;
 
         int m_pc;
