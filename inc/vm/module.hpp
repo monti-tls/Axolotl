@@ -45,10 +45,10 @@ namespace vm
         std::string const& name() const;
 
         core::Object& global(std::string const& name);
-        core::Object const& global(std::string const& name) const;
+        core::Object global(std::string const& name) const;
 
-        int addConstant(core::Object const& value);
-        core::Object const& constant(int index) const;
+        int addConstant(core::Object value);
+        core::Object constant(int index) const;
 
         void setBlob(bits::Blob const& blob);
         bits::Blob const& blob() const;
@@ -60,7 +60,7 @@ namespace vm
         ImportTable* detachImportTable();
 
         void exportTo(Module& to, std::string const& mask = "", std::string const& alias = "",
-                      core::Object const& extra = core::Object::nil()) const;
+                      core::Object extra = core::Object::nil()) const;
 
         bool initCalled() const;
         void init();

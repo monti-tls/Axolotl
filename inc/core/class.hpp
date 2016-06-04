@@ -45,7 +45,7 @@ namespace core
 
         Id classid() const;
         std::string const& classname() const;
-        void addMember(std::string const& name, Object const& value);
+        void addMember(std::string const& name, Object value);
 
         Object construct(Some&& value = Some()) const;
         Object unserialize(std::string const& serialized) const;

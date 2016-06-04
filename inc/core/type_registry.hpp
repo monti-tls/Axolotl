@@ -111,7 +111,7 @@ namespace core
         return Object(value, typeId);
     }
 
-    static inline Object construct(Object const& object)
+    static inline Object construct(Object object)
     { return object; }
 
     template <typename T>

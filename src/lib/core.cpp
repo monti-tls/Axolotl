@@ -9,20 +9,48 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <ctime>
 
 using namespace lib;
 using namespace core;
 using namespace lang;
 using namespace vm;
 
+Object Core::bind(Object fun, Object arg)
+{
+    auto wrapper = [=](std::vector<Object> argv)
+    {
+        argv.insert(argv.begin(), arg);
+        return fun.invoke(argv);
+    };
+
+    return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
+}
+
+Object Core::comp(Object f, Object g)
+{
+    auto wrapper = [=](std::vector<Object> const& argv)
+    {
+        return f.invoke({ g.invoke(argv) });
+    };
+
+    return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
+}
+
 void Core::record()
 {
     Module this_module = Module("core");
     ImportTable::addBuiltin(this_module);
 
-    /*ObjectFactory::m_impl->classes[detail::uniqueTypeId<Callable>()] = Class::CallableClass;*/
-
     this_module.global(std_main) = [](){};
+
+    this_module.global("bind") = &Core::bind;
+    this_module.global("comp") = &Core::comp;
+    this_module.global("weak") = [](Object obj) { return obj.weak(); };
+    this_module.global("weakref") = [](Object obj) { return obj.weakref(); };
+    this_module.global("copy") = [](Object obj) { return obj.copy(); };
+
+    this_module.global("time") = []() { return (std::size_t) time(0); };
 
     {
         Class c("core", lang::std_nil_classname);
@@ -67,6 +95,7 @@ void Core::record()
     {
         Class c("core", "int");
         c["int"]      = [](int a) { return a; };
+        c["int"]      = [](std::size_t a) { return (int) a; };
         c[std_add]    = [](int a, int b) { return a + b; };
         c[std_sub]    = [](int a, int b) { return a - b; };
         c[std_mul]    = [](int a, int b) { return a * b; };
@@ -93,6 +122,7 @@ void Core::record()
     {
         Class c("core", "ulong");
         c["ulong"]    = [](std::size_t a) { return a; };
+        c["ulong"]    = [](int a) { return (std::size_t) a; };
         c[std_add]    = [](std::size_t a, std::size_t b) { return a + b; };
         c[std_sub]    = [](std::size_t a, std::size_t b) { return a - b; };
         c[std_mul]    = [](std::size_t a, std::size_t b) { return a * b; };
@@ -118,7 +148,9 @@ void Core::record()
     }
     {
         Class c("core", "float");
-        c["float"]      = [](float a) { return a; };
+        c["float"]    = [](float a) { return a; };
+        c["float"]    = [](int a) { return (float) a; };
+        c["float"]    = [](std::size_t a) { return (float) a; };
         c[std_add]    = [](float a, float b) { return a + b; };
         c[std_sub]    = [](float a, float b) { return a - b; };
         c[std_mul]    = [](float a, float b) { return a * b; };
@@ -191,12 +223,37 @@ void Core::record()
         associate<StackFrame>(c);
     }
     {
+        Class c("core", "list_iterator");
+        c[std_add] = [](std::vector<Object>::iterator& it, int i)
+        {
+            return it + i;
+        };
+        c[std_sub] = [](std::vector<Object>::iterator& it, int i)
+        {
+            return it - i;
+        };
+        c[std_equals] = [](std::vector<Object>::iterator& a, std::vector<Object>::iterator& b)
+        {
+            return a == b;
+        };
+        c["get"] = [](std::vector<Object>::iterator& it)
+        {
+            return *it;
+        };
+        c["set"] = [](std::vector<Object>::iterator& it, Object value)
+        {
+            *it = value;
+        };
+        this_module.global(c.classname()) = c;
+        associate<std::vector<Object>::iterator>(c);
+    }
+    {
         Class c("core", "list");
         c["list"] = []()
         {
             return std::vector<Object>();
         };
-        c["list"] = [](Object const& obj)
+        c["list"] = [](Object obj)
         {
             return std::vector<Object>(obj);
         };
@@ -204,7 +261,7 @@ void Core::record()
         {
             return std::vector<Object>(len, Object::nil());
         };
-        c["list"] = [](int len, Object const& obj)
+        c["list"] = [](int len, Object obj)
         {
             return std::vector<Object>(len, obj);
         };
@@ -212,7 +269,7 @@ void Core::record()
         {
             return self.at(i);
         };
-        c["set"] = [](std::vector<Object>& self, int i, Object const& obj)
+        c["set"] = [](std::vector<Object>& self, int i, Object obj)
         {
             self.at(i) = obj;
         };
@@ -220,7 +277,11 @@ void Core::record()
         {
             return (int) self.size();
         };
-        c["append"] = [](std::vector<Object>& self, Object const& obj)
+        c["prepend"] = [](std::vector<Object>& self, Object obj)
+        {
+            self.insert(self.begin(), obj);
+        };
+        c["append"] = [](std::vector<Object>& self, Object obj)
         {
             self.push_back(obj);
         };
@@ -234,10 +295,18 @@ void Core::record()
             self[i] = self.at(j);
             self[j] = temp;
         };
-        c["apply"] = [](std::vector<Object>& self, Object const& function)
+        c["apply"] = [](std::vector<Object>& self, Object function)
         {
             for (auto& elem : self)
                 elem = function(elem);
+        };
+        c["begin"] = [](std::vector<Object>& self)
+        {
+            return self.begin();
+        };
+        c["end"] = [](std::vector<Object>& self)
+        {
+            return self.end();
         };
         this_module.global(c.classname()) = c;
         associate<std::vector<Object>>(c);

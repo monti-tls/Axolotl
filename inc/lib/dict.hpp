@@ -44,10 +44,10 @@ namespace lib
         iterator end();
         const_iterator end() const;
 
-        iterator find(core::Object const& key);
-        const_iterator find(core::Object const& key) const;
+        iterator find(core::Object key);
+        const_iterator find(core::Object key) const;
 
-        void set(core::Object const& key, core::Object const& value);
+        void set(core::Object key, core::Object value);
 
     private:
         std::map<core::Object, core::Object> m_impl;

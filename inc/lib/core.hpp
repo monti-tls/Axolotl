@@ -29,6 +29,8 @@ namespace lib
     class Core
     {
     public:
+        static core::Object bind(core::Object fun, core::Object arg);
+        static core::Object comp(core::Object f, core::Object g);
         static void record();
     };
 }

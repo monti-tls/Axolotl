@@ -3,7 +3,7 @@
 using namespace lang;
 using namespace core;
 
-Symbol::Symbol(Symbol::Which which, Symbol::Binding binding, std::string const& name, Object const& data)
+Symbol::Symbol(Symbol::Which which, Symbol::Binding binding, std::string const& name, Object data)
     : m_which(which)
     , m_binding(binding)
     , m_name(name)
@@ -25,7 +25,7 @@ void Symbol::setBinding(Symbol::Binding binding)
 std::string const& Symbol::name() const
 { return m_name; }
 
-Object const& Symbol::data() const
+Object Symbol::data() const
 { return m_data; }
 
 Object& Symbol::data()

@@ -43,14 +43,14 @@ namespace lang
         };
 
     public:
-        Symbol(Which which = None, Binding bindind = Auto, std::string const& name = "", core::Object const& data = core::Object::nil());
+        Symbol(Which which = None, Binding bindind = Auto, std::string const& name = "", core::Object data = core::Object::nil());
         ~Symbol();
 
         Which which() const;
         Binding binding() const;
         void setBinding(Binding binding);
         std::string const& name() const;
-        core::Object const& data() const;
+        core::Object data() const;
         core::Object& data();
 
     private:

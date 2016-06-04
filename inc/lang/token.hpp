@@ -42,10 +42,10 @@ namespace lang
         };
 
     public:
-        Token(int which = Invalid, core::Object const& what = core::Object::nil());
+        Token(int which = Invalid, core::Object what = core::Object::nil());
 
         int which() const;
-        core::Object const& what() const;
+        core::Object what() const;
 
         Where const& where() const;
         void setWhere(Where const& where);

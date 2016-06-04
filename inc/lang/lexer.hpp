@@ -35,7 +35,7 @@ namespace lang
         ~Lexer();
 
         void rewind();
-        void define(std::string const& name, std::string const& definition, core::Object const& build_token = core::Object::nil());
+        void define(std::string const& name, std::string const& definition, core::Object build_token = core::Object::nil());
         void build();
         Token getToken();
         bool eof() const;

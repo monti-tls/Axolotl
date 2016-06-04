@@ -100,7 +100,7 @@ Object& Module::global(std::string const& name)
     return m_impl->globals[name];
 }
 
-Object const& Module::global(std::string const& name) const
+Object Module::global(std::string const& name) const
 {
     if (!m_impl)
     {
@@ -115,7 +115,7 @@ Object const& Module::global(std::string const& name) const
     return it->second;
 }
 
-int Module::addConstant(Object const& value)
+int Module::addConstant(Object value)
 {
     if (!m_impl)
     {
@@ -126,7 +126,7 @@ int Module::addConstant(Object const& value)
     return (int) m_impl->constants.size() - 1;
 }
 
-Object const& Module::constant(int index) const
+Object Module::constant(int index) const
 {
     if (!m_impl)
     {
@@ -213,7 +213,7 @@ ImportTable* Module::detachImportTable()
     return table;
 }
 
-void Module::exportTo(Module& to, std::string const& mask, std::string const& alias, core::Object const& extra) const
+void Module::exportTo(Module& to, std::string const& mask, std::string const& alias, core::Object extra) const
 {
     if (!m_impl || !to.m_impl)
     {

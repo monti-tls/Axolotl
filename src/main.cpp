@@ -36,22 +36,9 @@ void print(Object const& o)
 
 int main()
 {
-    /*try
-    {*/
-        Module module("my");
-        module.global("print") = &print;
-
-        Script script;
-        script.addModule(module);
-        script.fromFile("./sample.xl");
-
-        script.run("__main__");
-    /*}
-    catch (std::exception const& exc)
-    {
-        std::cerr << exc.what() << std::endl;
-        return -1;
-    }*/
+    Script script;
+    script.fromFile("./sample.xl");
+    script.run("__main__");
 
     return 0;
 }

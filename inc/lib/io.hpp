@@ -26,7 +26,7 @@ namespace lib
     class Io
     {
     public:
-        static void put(core::Object const& obj);
+        static void put(core::Object obj);
         static void record();
     };
 }

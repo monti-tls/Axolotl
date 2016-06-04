@@ -590,7 +590,7 @@ void Parser::M_param_list_decl()
             {
                 if (res.symbol->binding() == Symbol::Global)
                 {
-                    core::Object const& c = m_module.global(pattern);
+                    core::Object c = m_module.global(pattern);
                     if (c.meta().is<core::Class>())
                     {
                         id = c.unwrap<core::Class>().classid();
@@ -951,40 +951,55 @@ void Parser::M_setupLexer()
                 return Token(TOK_IDENTIFIER, lexeme);
             });
 
+    auto escape = [](char val)
+    {
+        switch (val)
+        {
+            case '\\':
+                return '\\';
+
+            case 'n':
+                return '\n';
+
+            case 't':
+                return '\t';
+
+            case '\'':
+                return '\'';
+
+            default:
+                return '?';
+        }
+    };
+
     M_define("LIT_CHAR", "'\\'' '\\\\'? . '\\''",
-            [](std::string const& lexeme)
+            [escape](std::string const& lexeme)
             {
                 char val = lexeme[1];
                 if (val == '\\')
                 {
-                    switch (lexeme[2])
-                    {
-                        case '\\':
-                            break;
-
-                        case 'n':
-                            val = '\n';
-                            break;
-
-                        case 't':
-                            val = '\t';
-                            break;
-
-                        case '\'':
-                            val = '\'';
-                            break;
-
-                        default:
-                            val = '\0';
-                            break;
-                    }
+                    val = escape(lexeme[2]);
                 }
                 return Token(TOK_LIT_CHAR, val);
             });
 
     M_define("LIT_STRING", "'\"' ('[^\"\\\\]' | ('\\\\' .))* '\"'",
-            [](std::string const& lexeme)
-            { return Token(TOK_LIT_STRING, lexeme.substr(1, lexeme.size()-2)); });
+            [escape](std::string const& lexeme)
+            {
+                std::string str = lexeme.substr(1, lexeme.size() - 2);
+
+                for (int i = 0; i < (int) str.size(); ++i)
+                {
+                    if (str[i] == '\\' && i != (int) str.size() - 1)
+                    {
+                        char val = escape(str[i + 1]);
+                        str.erase(str.begin() + i + 1);
+                        str[i] = val;
+                    }
+                }
+
+                return Token(TOK_LIT_STRING, str);
+            });
 
     M_define("LIT_FLOATING", "'[0-9]'+ '.' '[0-9]'+",
             [](std::string const& lexeme)

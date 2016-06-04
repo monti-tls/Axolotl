@@ -28,11 +28,11 @@ Dict::iterator Dict::end()
 Dict::const_iterator Dict::end() const
 { return m_impl.end(); }
 
-Dict::iterator Dict::find(Object const& key)
+Dict::iterator Dict::find(Object key)
 { return m_impl.find(key); }
 
-Dict::const_iterator Dict::find(Object const& key) const
+Dict::const_iterator Dict::find(Object key) const
 { return m_impl.find(key); }
 
-void Dict::set(Object const& key, Object const& value)
+void Dict::set(Object key, Object value)
 { m_impl[key] = value; }

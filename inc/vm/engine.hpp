@@ -53,14 +53,14 @@ namespace vm
         bool M_checkOpcode(bits::Opcode opcode) const;
 
         core::Object& M_top();
-        core::Object const& M_top() const;
+        core::Object M_top() const;
         core::Object M_pop();
-        void M_push(core::Object const& value);
+        void M_push(core::Object value);
         void M_growStack(std::size_t amount);
         void M_shrinkStack(std::size_t amount);
         int M_stackIndex() const;
         core::Object& M_stackAt(int index);
-        core::Object const& M_stackAt(int index) const;
+        core::Object M_stackAt(int index) const;
 
         void M_changeModule(Module const& module);
         uint32_t M_fetch();

@@ -83,7 +83,7 @@ void ParserBase::M_build()
     rewind();
 }
 
-void ParserBase::M_define(std::string const& name, std::string const& definition, core::Object const& build_token)
+void ParserBase::M_define(std::string const& name, std::string const& definition, core::Object build_token)
 { m_lexer.define(name, definition, build_token); }
 
 void ParserBase::M_setTokenName(int token, std::string const& name, bool prefer_lexeme)

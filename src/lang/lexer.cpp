@@ -57,7 +57,7 @@ void Lexer::rewind()
     m_where.filename = streamName();
 }
 
-void Lexer::define(std::string const& name, std::string const& definition, Object const& build_token)
+void Lexer::define(std::string const& name, std::string const& definition, Object build_token)
 {
     if (m_defs.find(name) != m_defs.end())
         throw std::runtime_error("lang::Lexer::define: redefining `" + name + "'");

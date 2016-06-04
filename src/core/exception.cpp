@@ -34,7 +34,7 @@ InternalError::~InternalError()
 std::string InternalError::what() const
 { return "internal error: " + m_desc.size() ? m_desc : "???"; }
 
-NoMemberError::NoMemberError(Object const& self, std::string const& name)
+NoMemberError::NoMemberError(Object self, std::string const& name)
     : m_self(self)
     , m_name(name)
 {}
@@ -49,7 +49,7 @@ std::string NoMemberError::what() const
     return ss.str();
 }
 
-ClassError::ClassError(Object const& self, Class const& expected)
+ClassError::ClassError(Object self, Class const& expected)
     : m_self(self)
     , m_expected(expected)
 {}
@@ -64,7 +64,7 @@ std::string ClassError::what() const
     return ss.str();
 }
 
-SignatureError::SignatureError(Object const& self, std::string const& name, std::vector<Object> const& argv)
+SignatureError::SignatureError(Object self, std::string const& name, std::vector<Object> const& argv)
     : m_self(self)
     , m_name(name)
     , m_argv(argv)

@@ -19,7 +19,7 @@
 using namespace lang;
 using namespace core;
 
-Token::Token(int which, Object const& what)
+Token::Token(int which, Object what)
     : m_which(which)
     , m_what(what)
 {}
@@ -27,7 +27,7 @@ Token::Token(int which, Object const& what)
 int Token::which() const
 { return m_which; }
 
-Object const& Token::what() const
+Object Token::what() const
 { return m_what; }
 
 Token::Where const& Token::where() const

@@ -62,6 +62,9 @@ void Script::addModule(Module const& module)
     m_import_table->addModule(module);
 }
 
+Module Script::module() const
+{ return m_module; }
+
 void Script::fromFile(std::string const& filename)
 {
     std::ifstream fs(filename);

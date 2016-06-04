@@ -53,7 +53,7 @@ namespace core
     class NoMemberError : public Exception
     {
     public:
-        NoMemberError(Object const& self, std::string const& name);
+        NoMemberError(Object self, std::string const& name);
         virtual ~NoMemberError();
 
         virtual std::string what() const;
@@ -66,7 +66,7 @@ namespace core
     class ClassError : public Exception
     {
     public:
-        ClassError(Object const& self, Class const& expected);
+        ClassError(Object self, Class const& expected);
         virtual ~ClassError();
 
         virtual std::string what() const;
@@ -79,7 +79,7 @@ namespace core
     class SignatureError : public Exception
     {
     public:
-        SignatureError(Object const& self, std::string const& name, std::vector<Object> const& argv);
+        SignatureError(Object self, std::string const& name, std::vector<Object> const& argv);
         virtual ~SignatureError();
 
         virtual std::string what() const;

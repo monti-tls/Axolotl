@@ -1,145 +1,56 @@
 // -*- mode: c++;-*-
 
-import core;
+import core.*;
 import io;
 
-fun fabs(x : core.float)
+class Grid
 {
-    if (x < 0.0)
-        return -x;
-    return x;
-}
-
-fun fsqrt(x : core.float)
-{
-    xn = x;
-    while (fabs(x - xn*xn) > 0.0001)
-        xn = 0.5 * (xn + x / xn);
-    return xn;
-}
-
-class Complex
-{
-    fun Complex(a : core.float, b : core.float)
+    fun Grid(w : int, h : int)
     {
-        self.a = a;
-        self.b = b;
+        self.lines = list(h, nil);
+        for (l = self.lines.begin(); l != self.lines.end(); l += 1)
+            l.set(list(w, nil));
+        self.w = w;
+        self.h = h;
     }
 
-    fun Complex(a : core.float)
-    {
-        self.a = a;
-        self.b = 0.0;
-    }
+    fun width()
+        return self.w;
 
-    fun real() return self.a;
-    fun imag() return self.b;
-    fun conj() return Complex(self.a, -self.b);
-    fun mag2() return (self * self.conj()).real();
-    fun mag() return fsqrt(self.mag2());
+    fun height()
+        return self.h;
 
-    fun sqrt()
-    {
-        r = self.mag();
-        z = self + r;
-        q = z.mag();
-        return z * fsqrt(r) / q;
-    }
-
-    fun __add__(other : core.float) return self + Complex(other);
-    fun __sub__(other : core.float) return self - Complex(other);
-    fun __mul__(other : core.float) return self * Complex(other);
-    fun __div__(other : core.float) return Complex(self.a / other, self.b / other);
-    fun __neg__() return Complex(-self.a, -self.b);
+    fun get(i : int, j : int)
+        return self.lines.get(j).get(i);
     
-    fun __add__(other : Complex)
-        return Complex(self.a + other.a, self.b + other.b);
-    
-    fun __sub__(other : Complex)
-        return Complex(self.a - other.a, self.b - other.b);
+    fun set(i : int, j : int, x)
+        self.lines.get(j).set(i, x);
 
-    fun __mul__(other : Complex)
-        return Complex(self.a * other.a - self.b * other.b, self.a * other.b + self.b * other.a);
-
-    fun __div__(other : Complex)
-        return (self * other.conj()) / other.mag2();
-
-    fun __equals__(other : Complex)
-        return self.a == other.a && self.b == other.b;
-
-    fun __lt__(other : Complex)
-        return self.a < other.a && self.b < other.b;
+    fun fill(x)
+        for (i = 0; i < self.w; i += 1)
+            for (j = 0; j < self.h; j += 1)
+                self.set(i, j, x);
 
     fun __serialize__()
     {
-        str = self.b.__serialize__();
-        if (str.get(0) != '-')
-            str = "+" + str;
-        return self.a.__serialize__() + str + "i";
+        str = "";
+        for (l = self.lines.begin(); l != self.lines.end(); l += 1)
+        {
+            for (x = l.get().begin(); x != l.get().end(); x += 1)
+            {
+                str += x.get().__serialize__();
+                if (x + 1 != l.get().end())
+                    str += " ";
+            }
+
+            if (l + 1 != self.lines.end())
+                str += "\n";
+        }
+        return str;
     }
 };
 
-fun quicksort(l : core.list)
-    _quicksort(l, 0, l.size()-1);
+g = Grid(9, 9);
+g.fill(0);
 
-fun _quicksort(l : core.list, low : core.int, high : core.int)
-{
-    if (low < high)
-    {
-        p = _partition(l, low, high);
-        _quicksort(l, low, p - 1);
-        _quicksort(l, p + 1, high);
-    }
-}
-
-fun _partition(l : core.list, low : core.int, high : core.int)
-{
-    pivot = l.get(high);
-
-    i = low;
-    j = low;
-    while (j < high)
-    {
-        if (l.get(j) <= pivot)
-        {
-            l.swap(i, j);
-            i += 1;
-        }
-        j += 1;
-    }
-
-    l.swap(i, high);
-
-    return i;
-}
-
-l = core.list();
-l.append(Complex(2.0, 4.0));
-l.append(Complex(1.0, 8.0));
-l.append(Complex(8.0, 2.0));
-l.append(Complex(4.0, 1.0));
-
-io.println("Unsorted list : ", l);
-
-quicksort(l);
-
-io.println("Sorted list : ", l);
-
-i = 0;
-while (i < l.size())
-{
-    l.set(i, l.get(i).sqrt());
-    i += 1;
-}
-
-io.println("After sqrt : ", l);
-
-i = 0;
-while (i < l.size())
-{
-    l.set(i, l.get(i)*l.get(i));
-    i += 1;
-}
-
-for (i = 40; i >= 4; i %= 4)
-    io.println(i);
+io.println(g);

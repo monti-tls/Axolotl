@@ -120,7 +120,7 @@ Object& Engine::M_top()
     return m_stack.back();
 }
 
-Object const& Engine::M_top() const
+Object Engine::M_top() const
 {
     if (!m_stack.size())
     {
@@ -137,7 +137,7 @@ Object Engine::M_pop()
     return top;
 }
 
-void Engine::M_push(Object const& value)
+void Engine::M_push(Object value)
 { m_stack.push_back(value); }
 
 void Engine::M_growStack(std::size_t amount)
@@ -165,7 +165,7 @@ core::Object& Engine::M_stackAt(int index)
     return m_stack.at(index);
 }
 
-core::Object const& Engine::M_stackAt(int index) const
+core::Object Engine::M_stackAt(int index) const
 {
     if (index < 0 || index >= (int) m_stack.size())
     {
@@ -365,7 +365,7 @@ bool Engine::M_execute()
 
                 if (m_ir == LOAD_MEMBER)
                 {
-                    M_push(((Object const&) self).member(name));
+                    M_push(((Object) self).member(name));
                 }
                 else // if (m_ir == STOR_MEMBER)
                 {
@@ -419,7 +419,7 @@ bool Engine::M_execute()
                 for (int i = 0; i < argc; ++i)
                     argv[argc - i] = M_pop();
 
-                Object const& fun = self.findPolymorphic(name, argv);
+                Object fun = self.findPolymorphic(name, argv);
                 if (fun.isNil())
                 {
                     throw SignatureError(self, name, argv);
@@ -739,7 +739,7 @@ void Engine::M_error(std::string const& msg) const
     {
         std::ostringstream ss2;
 
-        Object const& obj = M_stackAt(m_backtrace[i]);
+        Object obj = M_stackAt(m_backtrace[i]);
 
         if (!obj.meta().is<StackFrame>())
             ss2 << "< " << util::ansi::bold << lang::ParserBase::error_color << "bogus" << util::ansi::clear << " >" << std::endl;

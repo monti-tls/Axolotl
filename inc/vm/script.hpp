@@ -37,6 +37,7 @@ namespace vm
         ~Script();
 
         void addModule(Module const& module);
+        Module module() const;
 
         void fromFile(std::string const& filename);
         void fromString(std::string const& str);

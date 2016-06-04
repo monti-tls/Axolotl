@@ -14,7 +14,7 @@ using namespace core;
 using namespace lang;
 using namespace vm;
 
-void Io::put(Object const& obj)
+void Io::put(Object obj)
 {
     if (obj.meta().is<std::string>())
     {
@@ -43,19 +43,19 @@ void Io::record()
 
     this_module.global(std_main) = [](){};
 
-    this_module.global("put") = [](Object const& obj)
+    this_module.global("put") = [](Object obj)
     { Io::put(obj); };
 
-    this_module.global("putln") = [](Object const& obj)
+    this_module.global("putln") = [](Object obj)
     { Io::put(obj); std::cout << std::endl; };
 
-    auto print = [](std::vector<Object> const& list)
-    { for (auto const& elem : list) Io::put(elem); };
+    auto print = [](std::vector<Object> list)
+    { for (auto elem : list) Io::put(elem); };
     
-    this_module.global("print") = Callable(std::function<void(std::vector<Object> const&)>(print), true);
+    this_module.global("print") = Callable(std::function<void(std::vector<Object>)>(print), true);
 
-    auto println = [&print](std::vector<Object> const& list)
+    auto println = [&print](std::vector<Object> list)
     { print(list); std::cout << std::endl; };
     
-    this_module.global("println") = Callable(std::function<void(std::vector<Object> const&)>(println), true);
+    this_module.global("println") = Callable(std::function<void(std::vector<Object>)>(println), true);
 }

@@ -42,7 +42,7 @@ Class::Class(std::string const& module_name, std::string const& classname, bool 
     addMember(lang::std_classid, m_impl->classid);
 
     addMember(lang::std_equals,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     {
         if (self.classname() != obj.classname())
             return false;
@@ -50,23 +50,23 @@ Class::Class(std::string const& module_name, std::string const& classname, bool 
     });
 
     addMember(lang::std_lt,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     { return (self.classname() + self.serialize()) < (obj.classname() + obj.serialize()); });
 
     addMember(lang::std_lte,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     { return (self < obj) || (self == obj); });
 
     addMember(lang::std_gt,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     { return obj < self; });
 
     addMember(lang::std_gte,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     { return (self > obj) || (self == obj); });
 
     addMember(lang::std_nequals,
-    [](Object const& self, Object const& obj)
+    [](Object self, Object obj)
     { return !(self == obj); });
 }
 
@@ -91,7 +91,7 @@ Class::Id Class::classid() const
 std::string const& Class::classname() const
 { return m_impl->classname; }
 
-void Class::addMember(std::string const& name, Object const& value)
+void Class::addMember(std::string const& name, Object value)
 { m_impl->members.push_back(std::make_pair(name, value)); }
 
 Object Class::construct(Some&& value) const
@@ -154,7 +154,7 @@ void Class::finalizeObject(Object& self) const
     /*if (!self.has(lang::std_call))
     {
         self.newPolymorphic(lang::std_call) =
-        [](Object const&) { throw std::runtime_error("object is not constructible"); };
+        [](Object) { throw std::runtime_error("object is not constructible"); };
     }*/
 }
 

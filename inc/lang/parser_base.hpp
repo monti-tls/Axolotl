@@ -50,7 +50,7 @@ namespace lang
         virtual void M_setupTokens() = 0;
 
         void M_build();
-        void M_define(std::string const& name, std::string const& definition, core::Object const& build_token);
+        void M_define(std::string const& name, std::string const& definition, core::Object build_token);
         void M_setTokenName(int token, std::string const& name, bool prefer_lexeme = false);
         std::string M_tokenName(int token) const;
         std::string M_tokenName(Token const& token) const;
