@@ -40,6 +40,7 @@ namespace lang
         private:
             ast::Node* m_last_node;
             std::string m_end_label;
+            bool m_stop = false;
         };
     }
 }

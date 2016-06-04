@@ -26,6 +26,7 @@ DEF_NODE(ImportMask,     FLAGS(None);     ATTR(std::string, name);
 DEF_NODE(FunDecl,        FLAGS(Block);    ATTR(std::string, name))
 DEF_NODE(ClassDecl,      FLAGS(None);     ATTR(std::string, name))
 DEF_NODE(Prog,           FLAGS(Block))
+DEF_NODE(Compose,        FLAGS(None))
 
 // These nodes are produced later when processing the AST
 

@@ -262,6 +262,20 @@ void PrettyPrint::visit(ProgNode* node)
     M_follow(node);
 }
 
+void PrettyPrint::visit(ComposeNode* node)
+{
+    M_indent();
+    m_os << "(Compose" << std::endl;
+    ++m_indent;
+    node->siblings()[0]->accept(this);
+    m_os << "," << std::endl;
+    node->siblings()[1]->accept(this);
+    m_os << ")";
+    --m_indent;
+
+    M_follow(node);
+}
+
 void PrettyPrint::visit(GlobalRefNode* node)
 {
     M_indent();

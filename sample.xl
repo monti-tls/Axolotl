@@ -3,54 +3,308 @@
 import core.*;
 import io;
 
-class Grid
+// --------------------------------------
+
+class Sudoku
 {
-    fun Grid(w : int, h : int)
+    fun Sudoku()
     {
-        self.lines = list(h, nil);
-        for (l = self.lines.begin(); l != self.lines.end(); l += 1)
-            l.set(list(w, nil));
-        self.w = w;
-        self.h = h;
+        self.board = list(81, 0);
+        self.zero();
     }
 
-    fun width()
-        return self.w;
+    fun fill(x : int)
+    {
+        for (i = 0; i < self.board.size(); i += 1)
+            self.set(i, x);
+    }
 
-    fun height()
-        return self.h;
+    fun zero()
+        self.fill(0);
 
     fun get(i : int, j : int)
-        return self.lines.get(j).get(i);
-    
-    fun set(i : int, j : int, x)
-        self.lines.get(j).set(i, x);
+        return self.get(i + j * 9);
 
-    fun fill(x)
-        for (i = 0; i < self.w; i += 1)
-            for (j = 0; j < self.h; j += 1)
-                self.set(i, j, x);
+    fun set(i : int, j : int, x : int)
+        self.set(i + j * 9, x);
+
+    fun get(pos : int)
+        return self.board.get(pos);
+
+    fun set(pos : int, x : int)
+        self.board.set(pos, x);
+
+    fun place(pos : int)
+    {
+        if (pos == 81)
+            return true;
+
+        if (self.get(pos) > 0)
+            return self.place(pos + 1);
+
+        for (n = 1; n <= 9; n += 1)
+        {
+            if (self.check(n, pos % 9, pos / 9))
+            {
+                self.set(pos, n);
+                if (self.place(pos + 1))
+                    return true;
+                self.set(pos, 0);
+            }
+        }
+
+        return false;
+    }
+
+    fun check(val : int, i : int, j : int)
+    {
+        for (n = 0; n < 9; n += 1)
+            if (self.get(n, j) == val || self.get(i, n) == val)
+                return false;
+
+        starti = (i / 3) * 3;
+        startj = (j / 3) * 3;
+
+        for (y = startj; y < startj + 3; y += 1)
+            for (x = starti; x < starti + 3; x += n)
+                if (self.get(x, y) == val)
+                    return false;
+
+        return true;
+    }
 
     fun __serialize__()
     {
         str = "";
-        for (l = self.lines.begin(); l != self.lines.end(); l += 1)
+
+        for (j = 0; j <= 9; j += 1)
         {
-            for (x = l.get().begin(); x != l.get().end(); x += 1)
+            if (j % 3 == 0)
             {
-                str += x.get().__serialize__();
-                if (x + 1 != l.get().end())
-                    str += " ";
+                str += "-------------------------";
+
+                if (j == 9)
+                    break;
+                else
+                    str += "\n";
             }
 
-            if (l + 1 != self.lines.end())
-                str += "\n";
+            l = self.board.get(j);
+
+            for (i = 0; i <= 9; i += 1)
+            {
+                if (i % 3 == 0)
+                {
+                    str += "| ";
+
+                    if (i == 9)
+                        break;
+                }
+
+                if (self.get(i, j) == 0)
+                    str += " ";
+                else
+                    str += self.get(i, j).__serialize__();
+                str += " ";
+            }
+
+            str += "\n";
         }
+
         return str;
+    }
+
+    fun example()
+    {
+        grid = Sudoku();
+
+        grid.set(0, 0, 0);
+        grid.set(1, 0, 0);
+        grid.set(2, 0, 3);
+        grid.set(3, 0, 9);
+        grid.set(4, 0, 0);
+        grid.set(5, 0, 0);
+        grid.set(6, 0, 0);
+        grid.set(7, 0, 5);
+        grid.set(8, 0, 1);
+
+        grid.set(0, 1, 5);
+        grid.set(1, 1, 4);
+        grid.set(2, 1, 6);
+        grid.set(3, 1, 0);
+        grid.set(4, 1, 1);
+        grid.set(5, 1, 8);
+        grid.set(6, 1, 3);
+        grid.set(7, 1, 0);
+        grid.set(8, 1, 0);
+
+        grid.set(0, 2, 0);
+        grid.set(1, 2, 0);
+        grid.set(2, 2, 0);
+        grid.set(3, 2, 0);
+        grid.set(4, 2, 0);
+        grid.set(5, 2, 7);
+        grid.set(6, 2, 4);
+        grid.set(7, 2, 2);
+        grid.set(8, 2, 0);
+
+        grid.set(0, 3, 0);
+        grid.set(1, 3, 0);
+        grid.set(2, 3, 9);
+        grid.set(3, 3, 0);
+        grid.set(4, 3, 5);
+        grid.set(5, 3, 0);
+        grid.set(6, 3, 0);
+        grid.set(7, 3, 3);
+        grid.set(8, 3, 0);
+
+        grid.set(0, 4, 2);
+        grid.set(1, 4, 0);
+        grid.set(2, 4, 0);
+        grid.set(3, 4, 6);
+        grid.set(4, 4, 0);
+        grid.set(5, 4, 3);
+        grid.set(6, 4, 0);
+        grid.set(7, 4, 0);
+        grid.set(8, 4, 4);
+
+        grid.set(0, 5, 0);
+        grid.set(1, 5, 8);
+        grid.set(2, 5, 0);
+        grid.set(3, 5, 0);
+        grid.set(4, 5, 7);
+        grid.set(5, 5, 0);
+        grid.set(6, 5, 2);
+        grid.set(7, 5, 0);
+        grid.set(8, 5, 0);
+
+        grid.set(0, 6, 0);
+        grid.set(1, 6, 9);
+        grid.set(2, 6, 7);
+        grid.set(3, 6, 3);
+        grid.set(4, 6, 0);
+        grid.set(5, 6, 0);
+        grid.set(6, 6, 0);
+        grid.set(7, 6, 0);
+        grid.set(8, 6, 0);
+
+        grid.set(0, 7, 0);
+        grid.set(1, 7, 0);
+        grid.set(2, 7, 1);
+        grid.set(3, 7, 8);
+        grid.set(4, 7, 2);
+        grid.set(5, 7, 0);
+        grid.set(6, 7, 9);
+        grid.set(7, 7, 4);
+        grid.set(8, 7, 7);
+
+        grid.set(0, 8, 8);
+        grid.set(1, 8, 5);
+        grid.set(2, 8, 0);
+        grid.set(3, 8, 0);
+        grid.set(4, 8, 0);
+        grid.set(5, 8, 4);
+        grid.set(6, 8, 6);
+        grid.set(7, 8, 0);
+        grid.set(8, 8, 0);
+
+        io.println(grid);
+
+        if (grid.place(0))
+        {
+            io.println("Solved !");
+            io.println(grid);
+        }
+        else
+            io.println("Unsolvable...");
     }
 };
 
-g = Grid(9, 9);
-g.fill(0);
+// --------------------------------------
 
-io.println(g);
+fun prime_sieve(max : int)
+{
+    primes = list();
+    blacklist = list(max, false);
+
+    for (n = 3; n < max; n += 1)
+    {
+        if (blacklist.get(n))
+            continue;
+
+        prime = true;
+        for (i = 2; i < n; i += 1)
+        {
+            if (n % i == 0)
+            {
+                prime = false;
+                break;
+            }
+        }
+
+        if (!prime)
+            continue;
+
+        primes.append(n);
+
+        for (i = 1; true; i += 1)
+        {
+            m = n * i;
+            if (m >= max)
+                break;
+
+            blacklist.set(m, true);
+        }
+    }
+
+    return primes;
+}
+
+fun last_digits(l : list)
+{
+    digits = list(l.size(), nil);
+
+    for (i = 0; i < l.size(); i += 1)
+        digits.set(i, l.get(i) % 10);
+
+    return digits;
+}
+
+fun prime_digits(max : int)
+{
+    digits = last_digits(prime_sieve(max));
+
+    occurences = list(4, 0);
+    for (i = 0; i < digits.size(); i += 1)
+    {
+        d = digits.get(i) / 3;
+        occurences.set(d, occurences.get(d) + 1);
+    }
+
+    for (i = 0; i < occurences.size(); i += 1)
+        occurences.set(i, float(occurences.get(i)) / float(digits.size()));
+
+    io.println(occurences);
+}
+
+// --------------------------------------
+
+fun add(x, y) return x + y;
+fun mul(x, y) return x + y;
+fun div(x, y) return x / y;
+fun inv(x) return 1.0 / x;
+
+fun functional_demo()
+{
+    mean = add $ bind(flip(div), 2.0);
+    // or :
+    mean = add $ bind(div, 2.0) $ inv;
+
+    io.println(mean(2.0, 5.0));
+}
+
+// --------------------------------------
+
+Sudoku().example();
+prime_digits(100);
+functional_demo();

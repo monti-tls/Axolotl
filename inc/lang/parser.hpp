@@ -58,6 +58,7 @@ namespace lang
         ast::Node* M_expr_7();
         ast::Node* M_expr_8();
         ast::Node* M_expr_9();
+        ast::Node* M_expr_10();
         ast::Node* M_expr();
         ast::Node* M_expr_list();
 

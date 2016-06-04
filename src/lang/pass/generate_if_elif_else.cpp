@@ -15,6 +15,9 @@ GenerateIfElifElse::~GenerateIfElifElse()
 
 void GenerateIfElifElse::visit(IfNode* node)
 {
+    if (m_stop)
+        return;
+    
     m_end_label = newLabel();
     std::string block_end_label = newLabel();
 
@@ -27,6 +30,8 @@ void GenerateIfElifElse::visit(IfNode* node)
     emitLabel(node, block_end_label);
 
     m_last_node = node;
+
+    m_stop = true;
     M_follow(node);
 }
 

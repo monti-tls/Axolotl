@@ -230,6 +230,9 @@ void Module::exportTo(Module& to, std::string const& mask, std::string const& al
         std::string sym_name = it.first;
         std::string ext_name;
 
+        if (sym_name.size() && sym_name[0] == '_')
+            continue;
+
         if (it.first == std_main)
             ext_name = alias + "." + sym_name;
         else
@@ -249,9 +252,15 @@ void Module::exportTo(Module& to, std::string const& mask, std::string const& al
 
         // Don't check for clashes
         to.global(ext_name) = it.second;
+        //FIXME: WTF?
+        to.global("@" + m_impl->name + "." + sym_name) = it.second;
 
         if (!extra.isNil())
+        {
             extra(ext_name);
+            //FIXME: WTF?
+            extra("@" + m_impl->name + "." + sym_name);
+        }
     }
 }
 

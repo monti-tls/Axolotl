@@ -41,6 +41,7 @@ REL_GT      := '>';
 REL_GTE     := ">=";
 REL_EQ      := "==";
 REL_NEQ     := "!=";
+FUN_COMPOSE := '$';
 ASSIGN      := '=';
 ASSIGN_ADD  := '+=';
 ASSIGN_SUB  := '-=';
@@ -193,9 +194,17 @@ expr_8 := expr_7
         | expr_or;
 
 // Precedency level: 9
+// Associativity   : L-R
+// Whar            : Functional composition
+expr_compose := expr_8 (FUN_COMPOSE expr_8)+;
+
+expr_9 := expr_8
+        | expr_compose;
+
+// Precedency level: 10
 // Associativity   : R-L
 // What            : Assignment
-expr_asg := expr_8
+expr_asg := expr_9
             ( ASSIGN
             | ASSIGN_ADD
             | ASSIGN_SUB
@@ -203,11 +212,11 @@ expr_asg := expr_8
             | ASSIGN_DIV
             | ASSIGN_MOD) expr;
 
-expr_9 := expr_8
-        | expr_asg;
+expr_10 := expr_9
+         | expr_asg;
 
 // Top-level expression rule
-expr := expr_9;
+expr := expr_10;
 
 // Expression compounds
 expr_list := expr (COMMA expr_list)?;

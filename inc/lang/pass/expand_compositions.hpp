@@ -14,32 +14,29 @@
  * along with Axolotl.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __AXOLOTL_LANG_PASS_FORWARD_H__
-#define __AXOLOTL_LANG_PASS_FORWARD_H__
+#ifndef __AXOLOTL_LANG_PASS_EXPAND_COMPOSITIONS_H__
+#define __AXOLOTL_LANG_PASS_EXPAND_COMPOSITIONS_H__
+
+#include "lang/forward.hpp"
+#include "lang/ast/node_visitor.hpp"
 
 namespace lang
 {
     namespace pass
     {
-        class PrettyPrint;
-        class ExtractMain;
-        class AddImplicitReturn;
-        class ExpandCompoundAssignments;
-        class ExpandCompositions;
-        class ExprResultCheck;
-        class BindNames;
-        class ResolveNames;
-        class ResolveConsts;
-        class GenerateRValue;
-        class GenerateLValue;
-        class GenerateIfElifElse;
-        class GenerateWhile;
-        class GenerateFor;
-        class GenerateIR;
-        class RenameLabel;
-        class CleanLabels;
-        class ByteCodeBackend;
+        //! Stage   : AST -> AST
+        //! Modifies: all Compose nodes
+        //! This pass replaces function composition nodes with the
+        //!   appropriate library function call
+        class ExpandCompositions : public ast::NodeVisitor
+        {
+        public:
+            using NodeVisitor::NodeVisitor;
+            ~ExpandCompositions();
+
+            void visit(ast::ComposeNode* node);
+        };
     }
 }
 
-#endif // __AXOLOTL_LANG_PASS_FORWARD_H__
+#endif // __AXOLOTL_LANG_PASS_EXPAND_COMPOSITIONS_H__

@@ -52,6 +52,7 @@ namespace lang
             void visit(ast::FunDeclNode* node);
             void visit(ast::ClassDeclNode* node);
             void visit(ast::ProgNode* node);
+            void visit(ast::ComposeNode* node);
             void visit(ast::GlobalRefNode* node);
             void visit(ast::LocalRefNode* node);
             void visit(ast::ConstRefNode* node);

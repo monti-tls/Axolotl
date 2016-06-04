@@ -577,6 +577,11 @@ bool Engine::M_execute()
         M_error(error.what());
         return false;
     }
+    catch (std::exception const& error)
+    {
+        M_error(error.what());
+        return false;
+    }
 }
 
 StackFrame Engine::M_makeFrame(bool dummy) const

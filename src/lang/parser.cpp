@@ -377,6 +377,29 @@ Node* Parser::M_expr_9()
 
     switch (M_peek().which())
     {
+        case TOK_FUN_COMPOSE:
+        do
+        {
+            Token start_token = M_get();
+            Node* other_node = M_check(M_expr_8());
+
+            ComposeNode* new_node = new ComposeNode(start_token);
+            new_node->addSibling(node);
+            new_node->addSibling(other_node);
+            
+            node = new_node;
+        } while (M_peek().which() == TOK_FUN_COMPOSE);
+    }
+
+    return node;
+}
+
+Node* Parser::M_expr_10()
+{
+    Node* node = M_expr_9();
+
+    switch (M_peek().which())
+    {
         case TOK_ASSIGN:
         case TOK_ASSIGN_ADD:
         case TOK_ASSIGN_SUB:
@@ -403,7 +426,7 @@ Node* Parser::M_expr_9()
 }
 
 Node* Parser::M_expr()
-{ return M_check(M_expr_9()); }
+{ return M_check(M_expr_10()); }
 
 Node* Parser::M_expr_list()
 {
@@ -909,12 +932,13 @@ void Parser::M_setupLexer()
     M_define("REL_GTE",      "\">=\"",      Token(TOK_REL_GTE));
     M_define("REL_EQ",       "\"==\"",      Token(TOK_REL_EQ));
     M_define("REL_NEQ",      "\"!=\"",      Token(TOK_REL_NEQ));
+    M_define("FUN_COMPOSE",  "'$'",         Token(TOK_FUN_COMPOSE));
     M_define("ASSIGN",       "'='",         Token(TOK_ASSIGN));
-    M_define("ASSIGN_ADD",   "\"+=\"",        Token(TOK_ASSIGN_ADD));
-    M_define("ASSIGN_SUB",   "\"-=\"",        Token(TOK_ASSIGN_SUB));
-    M_define("ASSIGN_MUL",   "\"*=\"",        Token(TOK_ASSIGN_MUL));
-    M_define("ASSIGN_DIV",   "\"/=\"",        Token(TOK_ASSIGN_DIV));
-    M_define("ASSIGN_MOD",   "\"%=\"",        Token(TOK_ASSIGN_MOD));
+    M_define("ASSIGN_ADD",   "\"+=\"",      Token(TOK_ASSIGN_ADD));
+    M_define("ASSIGN_SUB",   "\"-=\"",      Token(TOK_ASSIGN_SUB));
+    M_define("ASSIGN_MUL",   "\"*=\"",      Token(TOK_ASSIGN_MUL));
+    M_define("ASSIGN_DIV",   "\"/=\"",      Token(TOK_ASSIGN_DIV));
+    M_define("ASSIGN_MOD",   "\"%=\"",      Token(TOK_ASSIGN_MOD));
 
     M_define("KW_IMPORT",   "\"import\"",   Token(TOK_KW_IMPORT));
     M_define("KW_IF",       "\"if\"",       Token(TOK_KW_IF));

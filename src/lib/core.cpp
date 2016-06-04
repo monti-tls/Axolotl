@@ -16,27 +16,6 @@ using namespace core;
 using namespace lang;
 using namespace vm;
 
-Object Core::bind(Object fun, Object arg)
-{
-    auto wrapper = [=](std::vector<Object> argv)
-    {
-        argv.insert(argv.begin(), arg);
-        return fun.invoke(argv);
-    };
-
-    return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
-}
-
-Object Core::comp(Object f, Object g)
-{
-    auto wrapper = [=](std::vector<Object> const& argv)
-    {
-        return f.invoke({ g.invoke(argv) });
-    };
-
-    return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
-}
-
 void Core::record()
 {
     Module this_module = Module("core");
@@ -44,8 +23,39 @@ void Core::record()
 
     this_module.global(std_main) = [](){};
 
-    this_module.global("bind") = &Core::bind;
-    this_module.global("comp") = &Core::comp;
+    this_module.global("bind") = [](Object f, Object arg)
+    {
+        auto wrapper = [=](std::vector<Object> argv)
+        {
+            argv.insert(argv.begin(), arg);
+            return f.invoke(argv);
+        };
+
+        return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
+    };
+
+    this_module.global("compose") = [](Object f, Object g)
+    {
+        auto wrapper = [=](std::vector<Object> const& argv)
+        {
+            return f.invoke({ g.invoke(argv) });
+        };
+
+        return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
+    };
+
+    this_module.global("flip") = [](Object f)
+    {
+        auto wrapper = [=](std::vector<Object> argv)
+        {
+            if (argv.size() > 1)
+                std::swap(argv[0], argv[1]);
+            return f.invoke(argv);
+        };
+
+        return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
+    };
+
     this_module.global("weak") = [](Object obj) { return obj.weak(); };
     this_module.global("weakref") = [](Object obj) { return obj.weakref(); };
     this_module.global("copy") = [](Object obj) { return obj.copy(); };
@@ -280,14 +290,17 @@ void Core::record()
         c["prepend"] = [](std::vector<Object>& self, Object obj)
         {
             self.insert(self.begin(), obj);
+            return self;
         };
         c["append"] = [](std::vector<Object>& self, Object obj)
         {
             self.push_back(obj);
+            return self;
         };
         c["extend"] = [](std::vector<Object>& self, std::vector<Object> const& list)
         {
             std::copy(list.begin(), list.end(), std::back_inserter(self));
+            return self;
         };
         c["swap"] = [](std::vector<Object>& self, int i, int j)
         {
@@ -297,8 +310,22 @@ void Core::record()
         };
         c["apply"] = [](std::vector<Object>& self, Object function)
         {
-            for (auto& elem : self)
-                elem = function(elem);
+            std::vector<Object> other;
+            other.reserve(self.size());
+            for (auto elem : self)
+                other.push_back(function(elem));
+            return other;
+        };
+        c["filter"] = [](std::vector<Object>& self, Object function)
+        {
+            std::vector<Object> other;
+            other.reserve(self.size());
+            for (auto elem : self)
+            {
+                if (function(elem))
+                    other.push_back(elem);
+            }
+            return other;
         };
         c["begin"] = [](std::vector<Object>& self)
         {
