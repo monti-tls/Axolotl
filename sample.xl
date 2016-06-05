@@ -290,9 +290,11 @@ fun prime_digits(max : int)
 // --------------------------------------
 
 fun add(x, y) return x + y;
-fun mul(x, y) return x + y;
+fun mul(x, y) return x * y;
 fun div(x, y) return x / y;
 fun inv(x) return 1.0 / x;
+
+rdiv = flip(div);
 
 fun functional_demo()
 {
@@ -305,6 +307,16 @@ fun functional_demo()
 
 // --------------------------------------
 
-Sudoku().example();
-prime_digits(100);
-functional_demo();
+// Sudoku().example();
+// prime_digits(100);
+// functional_demo();
+
+l = list(8, nil);
+for (i = 0; i < l.size(); i += 1)
+    l.set(i, i);
+
+hdiv = proxy(div, float);
+
+l = map(l, proxy(bind(flip(div), 1.5), float) $ int);
+
+io.println(l);

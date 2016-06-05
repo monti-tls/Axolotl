@@ -56,6 +56,51 @@ void Core::record()
         return Callable(std::function<Object(std::vector<Object>)>(wrapper), true);
     };
 
+    this_module.global("map") = [](std::vector<Object> list, Object function)
+    {
+        for (auto it = list.begin(); it != list.end(); ++it)
+            *it = function(*it);
+        return list;
+    };
+
+    this_module.global("filter") = [](std::vector<Object> const& list, Object function)
+    {
+        std::vector<Object> other;
+        other.reserve(list.size());
+        for (auto elem : list)
+        {
+            if (function(elem))
+                other.push_back(elem);
+        }
+        return other;
+    };
+
+    this_module.global("fold") = [](std::vector<Object> list, Object function)
+    {
+        if (!list.size())
+            return Object::nil();
+
+        while (list.size() != 1)
+        {
+            list[0] = function(list[0], list[1]);
+            list.erase(list.begin()+1);
+        }
+
+        return list[0];
+    };
+
+    this_module.global("proxy") = [](Object f, Object proxy)
+    {
+        auto wrapper = [=](std::vector<Object> argv)
+        {
+            for (auto it = argv.begin(); it != argv.end(); ++it)
+                *it = proxy(*it);
+            return f.invoke(argv);
+        };
+
+        return Callable(std::function<Object(std::vector<Object>)>(wrapper), true); 
+    };
+
     this_module.global("weak") = [](Object obj) { return obj.weak(); };
     this_module.global("weakref") = [](Object obj) { return obj.weakref(); };
     this_module.global("copy") = [](Object obj) { return obj.copy(); };
@@ -106,6 +151,7 @@ void Core::record()
         Class c("core", "int");
         c["int"]      = [](int a) { return a; };
         c["int"]      = [](std::size_t a) { return (int) a; };
+        c["int"]      = [](float a) { return (int) a; };
         c[std_add]    = [](int a, int b) { return a + b; };
         c[std_sub]    = [](int a, int b) { return a - b; };
         c[std_mul]    = [](int a, int b) { return a * b; };
@@ -307,25 +353,6 @@ void Core::record()
             Object temp = self.at(i);
             self[i] = self.at(j);
             self[j] = temp;
-        };
-        c["apply"] = [](std::vector<Object>& self, Object function)
-        {
-            std::vector<Object> other;
-            other.reserve(self.size());
-            for (auto elem : self)
-                other.push_back(function(elem));
-            return other;
-        };
-        c["filter"] = [](std::vector<Object>& self, Object function)
-        {
-            std::vector<Object> other;
-            other.reserve(self.size());
-            for (auto elem : self)
-            {
-                if (function(elem))
-                    other.push_back(elem);
-            }
-            return other;
         };
         c["begin"] = [](std::vector<Object>& self)
         {
